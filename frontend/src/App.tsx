@@ -11,6 +11,7 @@ import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { Background } from "./components/Background";
 import { AudioPlayer } from "./components/AudioPlayer";
+import { motion, AnimatePresence } from "motion/react";
 
 type AppState = "lobby" | "waiting" | "game";
 
@@ -71,8 +72,14 @@ function App() {
 
   const handleBackToLobby = () => {
     setAppState("lobby");
+    // Don't clear the current game ID or localStorage immediately
+    // This allows users to rejoin their active game
+  };
+
+  const handleLeaveGame = () => {
+    setAppState("lobby");
     setCurrentGameId(null);
-    // Clear saved game when manually going back to lobby
+    // Clear saved game when user explicitly leaves
     if (currentAccount) {
       localStorage.removeItem(`penalsui_game_${currentAccount.address}`);
     }
@@ -128,28 +135,56 @@ function App() {
               </CardContent>
             </Card>
           ) : (
-            <>
+            <AnimatePresence mode="wait">
               {appState === "lobby" && (
-                <GameLobby
-                  onGameCreated={handleGameCreated}
-                  onGameJoined={handleGameJoined}
-                />
+                <motion.div
+                  key="lobby"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <GameLobby
+                    onGameCreated={handleGameCreated}
+                    onGameJoined={handleGameJoined}
+                    currentGameId={currentGameId}
+                    onLeaveGame={handleLeaveGame}
+                  />
+                </motion.div>
               )}
 
               {appState === "waiting" && currentGameId && (
-                <ShareableRoom
-                  gameId={currentGameId}
-                  onBackToLobby={handleBackToLobby}
-                />
+                <motion.div
+                  key="waiting"
+                  initial={{ opacity: 0, x: 100 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -100 }}
+                  transition={{ duration: 0.4 }}
+                >
+                  <ShareableRoom
+                    gameId={currentGameId}
+                    onBackToLobby={handleBackToLobby}
+                    onLeaveGame={handleLeaveGame}
+                  />
+                </motion.div>
               )}
 
               {appState === "game" && currentGameId && (
-                <GameInterface
-                  gameId={currentGameId}
-                  onBackToLobby={handleBackToLobby}
-                />
+                <motion.div
+                  key="game"
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 1.05 }}
+                  transition={{ duration: 0.5 }}
+                >
+                  <GameInterface
+                    gameId={currentGameId}
+                    onBackToLobby={handleBackToLobby}
+                    onLeaveGame={handleLeaveGame}
+                  />
+                </motion.div>
               )}
-            </>
+            </AnimatePresence>
           )}
         </main>
 

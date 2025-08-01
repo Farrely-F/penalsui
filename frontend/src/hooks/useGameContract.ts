@@ -40,18 +40,26 @@ const parseAddress = (value: any): string => {
   }
 
   // Handle string format that might contain comma-separated bytes
-  const valueStr = String(value || "");
-  if (valueStr.includes(",") && valueStr.includes("address")) {
-    // Extract the comma-separated numbers
+const valueStr = String(value || "");
+  if (valueStr.includes(",")) {
+    // Try to parse as comma-separated numbers
     const bytesStr = valueStr.replace(",address", "").trim();
-    const bytes = bytesStr.split(",").map((s) => parseInt(s.trim()));
-    if (bytes.length === 32 || bytes.length === 64 || bytes.length === 65) {
-      const startIndex = bytes.length === 65 ? 1 : 0;
-      const hexBytes = bytes
-        .slice(startIndex)
+    const bytes = bytesStr
+      .split(",")
+      .map((s) => {
+        const num = parseInt(s.trim());
+        return isNaN(num) ? null : num;
+      })
+      .filter((b) => b !== null);
+
+    if (bytes.length >= 20) {
+      // At least 20 bytes for a valid address
+      // Take the last 32 bytes if more than 32, or pad if less
+      const addressBytes = bytes.length > 32 ? bytes.slice(-32) : bytes;
+      const hexBytes = addressBytes
         .map((b) => b.toString(16).padStart(2, "0"))
         .join("");
-      return `0x${hexBytes}`;
+      return `0x${hexBytes.padStart(64, "0")}`;
     }
   }
 
@@ -362,14 +370,14 @@ export function useGameState(gameId: string | null) {
           const fields = (result.data.content as any).fields;
 
           return {
-            player1: fields.player1,
-            player2: fields.player2 || null,
-            started: fields.started,
-            finished: fields.finished,
+            player1: parseAddress(fields.player1),
+            player2: fields.player2 ? parseAddress(fields.player2) : null,
+            started: parseBoolean(fields.started),
+            finished: parseBoolean(fields.finished),
             currentRound: fields.current_round,
             player1Score: fields.player1_score,
             player2Score: fields.player2_score,
-            winner: fields.winner || null,
+            winner: fields.winner ? parseAddress(fields.winner) : null,
           };
         }
 
@@ -635,35 +643,18 @@ export function useAvailableGames() {
               // console.log(`Game state for ${gameId}:`, gameState);
               // console.log(`Filter check - started: ${gameState.started}, player2: ${gameState.player2}`);
 
-              // Ultra-lenient filtering - prioritize showing games over hiding them
-              // Only exclude games that are DEFINITELY started AND have DEFINITELY a second player
-              const hasSecondPlayer =
-                gameState.player2 !== null &&
-                gameState.player2 !== undefined &&
-                gameState.player2 !== "";
-              const isDefinitelyStarted = gameState.started === true;
-
-              // Only exclude if BOTH conditions are true (game is started AND has second player)
-              const shouldExclude = isDefinitelyStarted && hasSecondPlayer;
-              const shouldInclude = !shouldExclude;
+              // Show games that are not finished, regardless of started status
+              // This allows both players to see and rejoin their active games
+              const shouldInclude = !gameState.finished;
 
               // console.log(`Filter evaluation for ${gameId}:`, {
-              //   started: gameState.started,
-              //   isDefinitelyStarted,
-              //   player2: gameState.player2,
-              //   hasSecondPlayer,
-              //   shouldExclude,
+              //   finished: gameState.finished,
               //   shouldInclude,
               //   gameState
               // });
 
               if (shouldInclude) {
-                console.log(`✅ Adding game ${gameId} to available games`);
                 availableGames.push({ gameId, gameState });
-              } else {
-                console.log(
-                  `❌ Filtering out game ${gameId} - isDefinitelyStarted: ${isDefinitelyStarted} AND hasSecondPlayer: ${hasSecondPlayer}`,
-                );
               }
             }
           } catch (error) {
@@ -671,7 +662,7 @@ export function useAvailableGames() {
           }
         }
 
-        console.log("Available games:", availableGames);
+        // console.log("Available games:", availableGames);
         return availableGames;
       } catch (error) {
         console.error("❌ Error fetching games:", error);

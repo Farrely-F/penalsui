@@ -21,12 +21,14 @@ import {
 import { Badge } from "./ui/badge";
 import { Separator } from "./ui/separator";
 import { Progress } from "./ui/progress";
-import { Loader2, Target, Shield, Trophy, Users, Play } from "lucide-react";
+import { Loader2, Target, Shield, Trophy, Users, Play, LogOut } from "lucide-react";
 import { toast } from "sonner";
+import { motion, AnimatePresence } from "motion/react";
 
 interface GameInterfaceProps {
   gameId: string;
   onBackToLobby: () => void;
+  onLeaveGame?: () => void;
 }
 
 const DIRECTION_NAMES = {
@@ -41,7 +43,7 @@ const DIRECTION_EMOJIS = {
   [CONTRACT_CONFIG.DIRECTIONS.RIGHT]: "➡️",
 } as const;
 
-export function GameInterface({ gameId, onBackToLobby }: GameInterfaceProps) {
+export function GameInterface({ gameId, onBackToLobby, onLeaveGame }: GameInterfaceProps) {
   const [selectedDirection, setSelectedDirection] = useState<Direction | null>(
     null,
   );
@@ -118,20 +120,42 @@ export function GameInterface({ gameId, onBackToLobby }: GameInterfaceProps) {
     ];
 
     return (
-      <div className="grid grid-cols-3 gap-4">
-        {directions.map((direction) => (
-          <Button
+      <motion.div 
+        className="grid grid-cols-3 gap-4"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, staggerChildren: 0.1 }}
+      >
+        {directions.map((direction, index) => (
+          <motion.div
             key={direction}
-            variant={selectedDirection === direction ? "default" : "outline"}
-            size="lg"
-            onClick={() => setSelectedDirection(direction)}
-            className="h-20 flex flex-col gap-2"
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: index * 0.1, duration: 0.3 }}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
           >
-            <span className="text-2xl">{DIRECTION_EMOJIS[direction]}</span>
-            <span className="text-sm">{DIRECTION_NAMES[direction]}</span>
-          </Button>
+            <Button
+              variant={selectedDirection === direction ? "default" : "outline"}
+              size="lg"
+              onClick={() => setSelectedDirection(direction)}
+              className="h-20 flex flex-col gap-2 w-full transition-all duration-200"
+            >
+              <motion.span 
+                className="text-2xl"
+                animate={selectedDirection === direction ? {
+                  scale: [1, 1.2, 1],
+                  rotate: [0, 10, -10, 0]
+                } : {}}
+                transition={{ duration: 0.3 }}
+              >
+                {DIRECTION_EMOJIS[direction]}
+              </motion.span>
+              <span className="text-sm">{DIRECTION_NAMES[direction]}</span>
+            </Button>
+          </motion.div>
         ))}
-      </div>
+      </motion.div>
     );
   };
 
@@ -140,96 +164,177 @@ export function GameInterface({ gameId, onBackToLobby }: GameInterfaceProps) {
 
     if (!gameState.started) {
       return (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5" />
-              Waiting to Start
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-4">
-            <div className="text-center">
-              <p className="text-sm text-muted-foreground mb-4">
-                {gameState.player2
-                  ? "Both players joined! Ready to start?"
-                  : "Waiting for second player..."}
-              </p>
-
-              {gameState.player2 && (
-                <Button
-                  onClick={handleStartGame}
-                  disabled={startGameMutation.isPending}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <motion.div
+                  animate={{ rotate: [0, 360] }}
+                  transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
                 >
-                  {startGameMutation.isPending ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Starting...
-                    </>
-                  ) : (
-                    <>
-                      <Play className="mr-2 h-4 w-4" />
-                      Start Game
-                    </>
+                  <Users className="h-5 w-5" />
+                </motion.div>
+                Waiting to Start
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-4">
+              <div className="text-center">
+                <motion.p 
+                  className="text-sm text-muted-foreground mb-4"
+                  animate={{ opacity: [0.7, 1, 0.7] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                >
+                  {gameState.player2
+                    ? "Both players joined! Ready to start?"
+                    : "Waiting for second player..."}
+                </motion.p>
+
+                <AnimatePresence>
+                  {gameState.player2 && (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.8 }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      <Button
+                        onClick={handleStartGame}
+                        disabled={startGameMutation.isPending}
+                      >
+                        {startGameMutation.isPending ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Starting...
+                          </>
+                        ) : (
+                          <>
+                            <motion.div
+                              animate={{ scale: [1, 1.1, 1] }}
+                              transition={{ duration: 1, repeat: Infinity }}
+                            >
+                              <Play className="mr-2 h-4 w-4" />
+                            </motion.div>
+                            Start Game
+                          </>
+                        )}
+                      </Button>
+                    </motion.div>
                   )}
-                </Button>
-              )}
-            </div>
-
-            <Separator />
-
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span>Player 1:</span>
-                <span className="font-mono text-xs">
-                  {gameState.player1.slice(0, 6)}...
-                  {gameState.player1.slice(-4)}
-                </span>
+                </AnimatePresence>
               </div>
-              {gameState.player2 && (
+
+              <Separator />
+
+              <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span>Player 2:</span>
+                  <span>Player 1:</span>
                   <span className="font-mono text-xs">
-                    {gameState.player2.slice(0, 6)}...
-                    {gameState.player2.slice(-4)}
+                    {gameState.player1.slice(0, 6)}...
+                    {gameState.player1.slice(-4)}
                   </span>
                 </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+                {gameState.player2 && (
+                  <div className="flex justify-between">
+                    <span>Player 2:</span>
+                    <span className="font-mono text-xs">
+                      {gameState.player2.slice(0, 6)}...
+                      {gameState.player2.slice(-4)}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
       );
     }
 
     if (gameState.finished) {
       return (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center justify-center gap-2">
-              <Trophy className="h-5 w-5" />
-              Game Finished!
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="text-center flex flex-col gap-4">
-            <div className="text-2xl font-bold">
-              Final Score: {gameState.player1Score} - {gameState.player2Score}
-            </div>
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.6, type: "spring" }}
+        >
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-center gap-2">
+                <motion.div
+                  animate={{ 
+                    rotate: [0, 360],
+                    scale: [1, 1.2, 1]
+                  }}
+                  transition={{ 
+                    rotate: { duration: 2, repeat: Infinity, ease: "linear" },
+                    scale: { duration: 1, repeat: Infinity }
+                  }}
+                >
+                  <Trophy className="h-5 w-5 text-yellow-500" />
+                </motion.div>
+                Game Finished!
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="text-center flex flex-col gap-4">
+              <motion.div 
+                className="text-2xl font-bold"
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ delay: 0.3, type: "spring", stiffness: 200 }}
+              >
+                Final Score: {gameState.player1Score} - {gameState.player2Score}
+              </motion.div>
 
-            {gameState.winner ? (
-              <div className="text-lg">
-                🏆 Winner:{" "}
-                {gameState.winner === currentAccount?.address
-                  ? "You!"
-                  : "Opponent"}
-              </div>
-            ) : (
-              <div className="text-lg">🤝 It's a draw!</div>
-            )}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5, duration: 0.5 }}
+              >
+                {gameState.winner ? (
+                  <motion.div 
+                    className="text-lg"
+                    animate={gameState.winner === currentAccount?.address ? {
+                      scale: [1, 1.1, 1],
+                      color: ["#000", "#22c55e", "#000"]
+                    } : {}}
+                    transition={{ duration: 2, repeat: Infinity }}
+                  >
+                    🏆 Winner:{" "}
+                    {gameState.winner === currentAccount?.address
+                      ? "You!"
+                      : "Opponent"}
+                  </motion.div>
+                ) : (
+                  <div className="text-lg">🤝 It's a draw!</div>
+                )}
+              </motion.div>
 
-            <Button onClick={onBackToLobby} className="mt-4">
-              Back to Lobby
-            </Button>
-          </CardContent>
-        </Card>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.7 }}
+                className="flex gap-2 mt-4"
+              >
+                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                  <Button onClick={onBackToLobby} variant="outline">
+                    Back to Lobby
+                  </Button>
+                </motion.div>
+                {onLeaveGame && (
+                  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                    <Button onClick={onLeaveGame} variant="destructive">
+                      <LogOut className="mr-2 h-4 w-4" />
+                      Leave Game
+                    </Button>
+                  </motion.div>
+                )}
+              </motion.div>
+            </CardContent>
+          </Card>
+        </motion.div>
       );
     }
 
@@ -245,51 +350,95 @@ export function GameInterface({ gameId, onBackToLobby }: GameInterfaceProps) {
       ((gameState.currentRound - 1) / CONTRACT_CONFIG.MAX_ROUNDS) * 100;
 
     return (
-      <div className="space-y-6">
+      <motion.div 
+        className="space-y-6"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.5 }}
+      >
         {/* Score and Progress */}
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-center space-y-4">
-              <div className="text-3xl font-bold">
-                {gameState.player1Score} - {gameState.player2Score}
-              </div>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.1 }}
+        >
+          <Card>
+            <CardContent className="pt-6">
+              <div className="text-center space-y-4">
+                <motion.div 
+                  className="text-3xl font-bold"
+                  key={`${gameState.player1Score}-${gameState.player2Score}`}
+                  initial={{ scale: 1.2, color: "#22c55e" }}
+                  animate={{ scale: 1, color: "inherit" }}
+                  transition={{ duration: 0.3 }}
+                >
+                  {gameState.player1Score} - {gameState.player2Score}
+                </motion.div>
 
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span>
-                    Round {gameState.currentRound} of{" "}
-                    {CONTRACT_CONFIG.MAX_ROUNDS}
-                  </span>
-                  <span>{Math.round(progress)}% Complete</span>
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span>
+                      Round {gameState.currentRound} of{" "}
+                      {CONTRACT_CONFIG.MAX_ROUNDS}
+                    </span>
+                    <span>{Math.round(progress)}% Complete</span>
+                  </div>
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: "100%" }}
+                    transition={{ duration: 0.8, delay: 0.2 }}
+                  >
+                    <Progress value={progress} className="h-2" />
+                  </motion.div>
                 </div>
-                <Progress value={progress} className="h-2" />
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </motion.div>
 
         {/* Current Round */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              {isShooter ? (
-                <>
-                  <Target className="h-5 w-5" />
-                  Your Turn to Shoot
-                </>
-              ) : (
-                <>
-                  <Shield className="h-5 w-5" />
-                  Your Turn to Dive
-                </>
-              )}
-            </CardTitle>
-            <CardDescription>
-              {isShooter
-                ? "Choose where to shoot the ball"
-                : "Guess where the opponent will shoot"}
-            </CardDescription>
-          </CardHeader>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+        >
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                {isShooter ? (
+                  <>
+                    <motion.div
+                      animate={{ 
+                        rotate: [0, 10, -10, 0],
+                        scale: [1, 1.1, 1]
+                      }}
+                      transition={{ duration: 2, repeat: Infinity }}
+                    >
+                      <Target className="h-5 w-5 text-red-500" />
+                    </motion.div>
+                    Your Turn to Shoot
+                  </>
+                ) : (
+                  <>
+                    <motion.div
+                      animate={{ 
+                        x: [-2, 2, -2, 2, 0],
+                        scale: [1, 1.1, 1]
+                      }}
+                      transition={{ duration: 2, repeat: Infinity }}
+                    >
+                      <Shield className="h-5 w-5 text-blue-500" />
+                    </motion.div>
+                    Your Turn to Dive
+                  </>
+                )}
+              </CardTitle>
+              <CardDescription>
+                {isShooter
+                  ? "Choose where to shoot the ball"
+                  : "Guess where the opponent will shoot"}
+              </CardDescription>
+            </CardHeader>
 
           <CardContent className="space-y-6">
             {(() => {
@@ -381,7 +530,8 @@ export function GameInterface({ gameId, onBackToLobby }: GameInterfaceProps) {
             </div>
           </CardContent>
         </Card>
-      </div>
+        </motion.div>
+      </motion.div>
     );
   };
 
@@ -404,7 +554,15 @@ export function GameInterface({ gameId, onBackToLobby }: GameInterfaceProps) {
         <CardContent className="pt-6">
           <div className="text-center py-8">
             <p className="text-lg font-medium mb-4">Game not found</p>
-            <Button onClick={onBackToLobby}>Back to Lobby</Button>
+            <div className="flex gap-2 justify-center">
+              <Button onClick={onBackToLobby} variant="outline">Back to Lobby</Button>
+              {onLeaveGame && (
+                <Button onClick={onLeaveGame} variant="destructive">
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Leave Game
+                </Button>
+              )}
+            </div>
           </div>
         </CardContent>
       </Card>
