@@ -389,6 +389,8 @@ public fun get_round_result(game: &Game, round_num: u8): (bool, Option<bool>) {
 }
 
 // Get the current turn (who should play next)
+// Returns the address of the player who can currently make a move
+// Returns None if both moves are submitted or game is not active
 public fun get_current_turn(game: &Game): Option<address> {
     if (!game.started || game.finished || game.current_round > MAX_ROUNDS) {
         return option::none()
@@ -397,22 +399,30 @@ public fun get_current_turn(game: &Game): Option<address> {
     let round_index = (game.current_round as u64) - 1;
     let round = vector::borrow(&game.rounds, round_index);
 
-    // If neither move is submitted, both can play (but we return shooter for simplicity)
-    if (option::is_none(&round.shoot_direction) && option::is_none(&round.keep_direction)) {
-        return option::some(round.shooter)
+    let shoot_submitted = option::is_some(&round.shoot_direction);
+    let keep_submitted = option::is_some(&round.keep_direction);
+
+    // If both moves submitted, no one can play (waiting for resolution)
+    if (shoot_submitted && keep_submitted) {
+        return option::none()
     };
 
-    // If shoot direction is submitted but not keep direction
-    if (option::is_some(&round.shoot_direction) && option::is_none(&round.keep_direction)) {
+    // If neither move submitted, both can play - return None to indicate both can play
+    if (!shoot_submitted && !keep_submitted) {
+        return option::none()
+    };
+
+    // If only shoot submitted, keeper can play
+    if (shoot_submitted && !keep_submitted) {
         return option::some(round.keeper)
     };
 
-    // If keep direction is submitted but not shoot direction
-    if (option::is_none(&round.shoot_direction) && option::is_some(&round.keep_direction)) {
+    // If only keep submitted, shooter can play
+    if (!shoot_submitted && keep_submitted) {
         return option::some(round.shooter)
     };
 
-    // Both moves submitted, waiting for resolution
+    // Should never reach here
     option::none()
 }
 
@@ -424,3 +434,8 @@ public fun direction_center(): u8 { DIRECTION_CENTER }
 public fun direction_right(): u8 { DIRECTION_RIGHT }
 
 public fun max_rounds(): u8 { MAX_ROUNDS }
+
+// Get available games (games that need a second player)
+entry fun get_available_games(registry: &GameRegistry): vector<ID> {
+    registry.games
+}
