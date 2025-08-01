@@ -15,6 +15,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
+  PenalSUIHeader,
 } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { Separator } from "./ui/separator";
@@ -410,9 +411,7 @@ export function GameInterface({ gameId, onBackToLobby }: GameInterfaceProps) {
     <div className="w-full max-w-2xl mx-auto flex flex-col gap-4">
       <Card>
         <CardHeader>
-          <CardTitle className="text-center text-2xl font-bold">
-            ⚽ PenalSUI
-          </CardTitle>
+          <PenalSUIHeader />
           <CardDescription className="text-center">
             Game ID:{" "}
             <span className="font-mono text-xs">

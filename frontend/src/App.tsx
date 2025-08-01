@@ -2,14 +2,16 @@ import { useState, useEffect } from "react";
 import { ConnectButton, useCurrentAccount } from "@mysten/dapp-kit";
 import { GameLobby } from "./components/GameLobby";
 import { GameInterface } from "./components/GameInterface";
+import { ShareableRoom } from "./components/ShareableRoom";
 import { useGameState } from "./hooks/useGameContract";
 import { Button } from "./components/ui/button";
-import { Card, CardContent } from "./components/ui/card";
+import { Card, CardContent, PenalSUIHeader } from "./components/ui/card";
 import { Toaster } from "./components/ui/sonner";
 import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
+import { Background } from "./components/Background";
 
-type AppState = "lobby" | "game";
+type AppState = "lobby" | "waiting" | "game";
 
 function App() {
   const [appState, setAppState] = useState<AppState>("lobby");
@@ -48,9 +50,17 @@ function App() {
     }
   }, [currentAccount, gameState?.finished]);
 
+  // Auto-transition from waiting to game when second player joins
+  useEffect(() => {
+    if (appState === "waiting" && gameState?.player2) {
+      setAppState("game");
+      toast.success("Opponent joined! Game starting...");
+    }
+  }, [appState, gameState?.player2]);
+
   const handleGameCreated = (gameId: string) => {
     setCurrentGameId(gameId);
-    setAppState("game");
+    setAppState("waiting");
   };
 
   const handleGameJoined = (gameId: string) => {
@@ -69,13 +79,14 @@ function App() {
 
   return (
     <>
-      <div className="flex flex-col items-center justify-center bg-gradient-to-br from-green-50 to-blue-50 dark:from-green-950 dark:to-blue-950">
+      <div className="flex flex-col items-center justify-center bg-gradient-to-br from-green-50 to-blue-50 dark:from-green-950 dark:to-blue-950 bg-none">
+        <Background />
         {/* Header */}
-        <header className="flex justify-center items-center border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 w-full">
+        <header className="z-50 sticky top-0 left-0 flex justify-center items-center border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 w-full">
           <div className="container mx-auto px-4 py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
-                {appState === "game" && (
+                {(appState === "game" || appState === "waiting") && (
                   <Button
                     variant="ghost"
                     size="sm"
@@ -86,7 +97,8 @@ function App() {
                     Back
                   </Button>
                 )}
-                <h1 className="text-xl font-bold">⚽ PenalSUI</h1>
+                <img src="/icon.png" className="size-8" />
+                <h1 className="text-xl font-bold">PenalSUI</h1>
               </div>
 
               <div className="flex items-center gap-4">
@@ -97,13 +109,12 @@ function App() {
         </header>
 
         {/* Main Content */}
-        <main className="container min-h-dvh lg:max-h-[1080px] mx-auto px-4 py-8 flex flex-col justify-center items-center">
+        <main className="backdrop-blur-sm w-full min-h-dvh lg:max-h-[1080px] mx-auto px-4 py-8 flex flex-col justify-center items-center">
           {!currentAccount ? (
             <Card className="w-full max-w-md mx-auto">
-              <CardContent className="pt-6">
+              <PenalSUIHeader imageClass="size-24" />
+              <CardContent>
                 <div className="text-center space-y-4">
-                  <div className="text-6xl mb-4">⚽</div>
-                  <h2 className="text-2xl font-bold">Welcome to PenalSUI</h2>
                   <p className="text-muted-foreground">
                     Connect your SUI wallet to start playing penalty shootout
                     games on the blockchain!
@@ -120,6 +131,13 @@ function App() {
                 <GameLobby
                   onGameCreated={handleGameCreated}
                   onGameJoined={handleGameJoined}
+                />
+              )}
+
+              {appState === "waiting" && currentGameId && (
+                <ShareableRoom
+                  gameId={currentGameId}
+                  onBackToLobby={handleBackToLobby}
                 />
               )}
 

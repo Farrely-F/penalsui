@@ -13,6 +13,7 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
+  PenalSUIHeader,
 } from "./ui/card";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
@@ -114,9 +115,7 @@ export function GameLobby({ onGameCreated, onGameJoined }: GameLobbyProps) {
     <div className="w-full max-w-2xl mx-auto space-y-6 flex flex-col gap-2">
       <Card>
         <CardHeader className="text-center">
-          <CardTitle className="text-3xl font-bold flex items-center justify-center gap-2">
-            ⚽ PenalSUI
-          </CardTitle>
+          <PenalSUIHeader />
           <CardDescription className="text-lg">
             Real-time penalty shootout game on SUI blockchain
           </CardDescription>
@@ -284,9 +283,11 @@ export function GameLobby({ onGameCreated, onGameJoined }: GameLobbyProps) {
       </Card>
 
       <Card>
-        <CardContent className="pt-6">
+        <CardHeader className="text-center">
+          <p className="mb-2">🎮 How to Play:</p>
+        </CardHeader>
+        <CardContent>
           <div className="text-center text-sm text-muted-foreground">
-            <p className="mb-2">🎮 How to Play:</p>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
               <div>
                 <strong>1. Create/Join</strong>

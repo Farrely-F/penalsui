@@ -1,10 +1,10 @@
 // Contract configuration for PenalSUI game
 export const CONTRACT_CONFIG = {
   // Package ID from deployment
-  PACKAGE_ID: "0x47d49c7e9a65453fe822c9ce20373cd92ec6c442800d0f7a445c6b30685e6b2b",
+  PACKAGE_ID: "0xa7c6cdbbccc6484002a770e62b2c3c9f135ecde69451fef2933a4a6658878cf3",
   
   // Game Registry shared object ID
-  GAME_REGISTRY_ID: "0xc9d695218fb98e2f7d11f915420132be6185240e3e9927cc4c8b23ff7abf4c1b",
+  GAME_REGISTRY_ID: "0xa0d748880beda2daec9232b529b856fc4289459b1c2fecf6477d8cfb2bbd41b0",
   
   // Module name
   MODULE_NAME: "game",
