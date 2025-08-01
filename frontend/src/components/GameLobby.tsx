@@ -4,6 +4,7 @@ import {
   useCreateGame,
   useJoinGame,
   useAvailableGames,
+  useUserActiveGames,
   useGameState,
 } from "../hooks/useGameContract";
 import { Button } from "./ui/button";
@@ -57,27 +58,40 @@ export function GameLobby({
     refetch: refetchGames,
   } = useAvailableGames();
 
-  // Find if user is a participant in any available game
-  const userActiveGame = availableGames?.find(({ gameState }) => 
-    currentAccount && (
-      gameState.player1 === currentAccount.address ||
-      gameState.player2 === currentAccount.address
-    )
+  const {
+    data: userActiveGames,
+    isLoading: userActiveGamesLoading,
+    refetch: refetchUserActiveGames,
+  } = useUserActiveGames();
+
+  // Find if user is a participant in any available game (as creator)
+  const userActiveGame = availableGames?.find(
+    ({ gameState }) =>
+      currentAccount && gameState.player1 === currentAccount.address,
   );
-  
-  // Use the detected active game or the provided currentGameId
-  const effectiveGameId = userActiveGame?.gameId || currentGameId;
+
+  // Find user's active game from the new hook
+  const userActiveGameFromHook = userActiveGames?.[0]; // Take the first active game
+
+  // Use the detected active game, user's active game from hook, or the provided currentGameId
+  const effectiveGameId =
+    userActiveGame?.gameId || userActiveGameFromHook?.gameId || currentGameId;
   const { data: currentGameState } = useGameState(effectiveGameId || null);
-  
+
   // Check if current user is a participant in the game
-  const isUserInGame = currentGameState && currentAccount && (
-    currentGameState.player1 === currentAccount.address ||
-    currentGameState.player2 === currentAccount.address
-  );
-  
+  const isUserInGame =
+    currentGameState &&
+    currentAccount &&
+    (currentGameState.player1 === currentAccount.address ||
+      currentGameState.player2 === currentAccount.address);
+
   // Determine if the game can be rejoined
-  const canRejoinGame = effectiveGameId && currentGameState && !currentGameState.finished && isUserInGame;
-  
+  const canRejoinGame =
+    effectiveGameId &&
+    currentGameState &&
+    !currentGameState.finished &&
+    isUserInGame;
+
   // Note: We detect userActiveGame but don't automatically set it
   // Users can manually rejoin from the available games list
 
@@ -128,13 +142,16 @@ export function GameLobby({
     }
 
     try {
-      // Check if this is a rejoin case (user is already a participant in an available game)
-      const targetGame = availableGames?.find(game => game.gameId === targetGameId);
-      const isRejoinCase = targetGame && currentAccount && (
-        targetGame.gameState.player1 === currentAccount.address ||
-        targetGame.gameState.player2 === currentAccount.address
-      );
-      
+      // Check if this is a rejoin case (user is already a participant in available or user active games)
+      const targetGame =
+        availableGames?.find((game) => game.gameId === targetGameId) ||
+        userActiveGames?.find((game) => game.gameId === targetGameId);
+      const isRejoinCase =
+        targetGame &&
+        currentAccount &&
+        (targetGame.gameState.player1 === currentAccount.address ||
+          targetGame.gameState.player2 === currentAccount.address);
+
       if (isRejoinCase) {
         // Direct rejoin without contract call
         toast.success("Rejoined your game!");
@@ -142,7 +159,7 @@ export function GameLobby({
         setGameIdToJoin("");
         return;
       }
-      
+
       // Check if this is the user's current active game and they can rejoin
       if (targetGameId === effectiveGameId && canRejoinGame) {
         toast.success("Rejoined your active game!");
@@ -150,7 +167,7 @@ export function GameLobby({
         setGameIdToJoin("");
         return;
       }
-      
+
       // If trying to join current game but can't rejoin, show appropriate message
       if (targetGameId === effectiveGameId && !canRejoinGame) {
         if (currentGameState?.finished) {
@@ -279,14 +296,14 @@ export function GameLobby({
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <motion.div
-                        animate={{ rotate: [0, 90, 0] }}
+                        animate={{ y: [-2, 0, -2] }}
                         transition={{
-                          duration: 2,
+                          duration: 1,
                           repeat: Infinity,
                           ease: "easeInOut",
                         }}
                       >
-                        <Plus className="h-5 w-5" />
+                        ⚽
                       </motion.div>
                       Create New Game
                     </CardTitle>
@@ -395,7 +412,10 @@ export function GameLobby({
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => refetchGames()}
+                    onClick={() => {
+                      refetchGames();
+                      refetchUserActiveGames();
+                    }}
                     disabled={gamesLoading}
                   >
                     <RefreshCw
@@ -416,13 +436,15 @@ export function GameLobby({
                 ) : availableGames && availableGames.length > 0 ? (
                   <div className="space-y-3">
                     {availableGames.map(({ gameId, gameState }) => {
-                      const isUserParticipant = currentAccount && (
-                        gameState.player1 === currentAccount.address ||
-                        gameState.player2 === currentAccount.address
-                      );
-                      const isCreator = gameState.player1 === currentAccount?.address;
-                      const isPlayer2 = gameState.player2 === currentAccount?.address;
-                      
+                      const isUserParticipant =
+                        currentAccount &&
+                        (gameState.player1 === currentAccount.address ||
+                          gameState.player2 === currentAccount.address);
+                      const isCreator =
+                        gameState.player1 === currentAccount?.address;
+                      const isPlayer2 =
+                        gameState.player2 === currentAccount?.address;
+
                       return (
                         <div
                           key={gameId}
@@ -431,7 +453,10 @@ export function GameLobby({
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-1">
                               {isUserParticipant ? (
-                                <Badge variant="default" className="bg-green-600">
+                                <Badge
+                                  variant="default"
+                                  className="bg-green-600"
+                                >
                                   Your Active Game
                                 </Badge>
                               ) : (
@@ -468,7 +493,9 @@ export function GameLobby({
                             {joinGameMutation.isPending ? (
                               <>
                                 <Loader2 className="mr-2 h-3 w-3 animate-spin" />
-                                {isUserParticipant ? "Rejoining..." : "Joining..."}
+                                {isUserParticipant
+                                  ? "Rejoining..."
+                                  : "Joining..."}
                               </>
                             ) : isUserParticipant ? (
                               <>
@@ -513,7 +540,8 @@ export function GameLobby({
                     <div className="flex justify-between">
                       <span>Game ID:</span>
                       <span className="font-mono text-xs">
-                        {effectiveGameId?.slice(0, 8)}...{effectiveGameId?.slice(-6)}
+                        {effectiveGameId?.slice(0, 8)}...
+                        {effectiveGameId?.slice(-6)}
                       </span>
                     </div>
                     <div className="flex justify-between">
@@ -559,6 +587,120 @@ export function GameLobby({
                 </CardContent>
               </Card>
             )}
+
+            {/* Show user active games */}
+            {userActiveGames && userActiveGames.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <Users className="h-5 w-5" />
+                      Your Active Games
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        refetchGames();
+                        refetchUserActiveGames();
+                      }}
+                      disabled={userActiveGamesLoading}
+                    >
+                      <RefreshCw
+                        className={`h-4 w-4 ${userActiveGamesLoading ? "animate-spin" : ""}`}
+                      />
+                    </Button>
+                  </CardTitle>
+                  <CardDescription>
+                    Your active games that you can rejoin
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="max-h-[calc(100vh-30rem)] overflow-auto">
+                  {userActiveGamesLoading ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="h-6 w-6 animate-spin" />
+                      <span className="ml-2">Loading your active games...</span>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {userActiveGames.map(({ gameId, gameState }) => {
+                        const isPlayer1 =
+                          gameState.player1 === currentAccount?.address;
+                        const isPlayer2 =
+                          gameState.player2 === currentAccount?.address;
+
+                        return (
+                          <div
+                            key={gameId}
+                            className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                          >
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <Badge
+                                  variant="default"
+                                  className="bg-green-600"
+                                >
+                                  Your Active Game{" "}
+                                  {isPlayer1 ? "(Creator)" : "(Player 2)"}
+                                </Badge>
+                              </div>
+                              <div className="text-sm text-muted-foreground">
+                                <div>
+                                  Creator: {gameState.player1.slice(0, 6)}...
+                                  {gameState.player1.slice(-4)}
+                                  {isPlayer1 && " (You)"}
+                                </div>
+                                {gameState.player2 && (
+                                  <div>
+                                    Player 2: {gameState.player2.slice(0, 6)}...
+                                    {gameState.player2.slice(-4)}
+                                    {isPlayer2 && " (You)"}
+                                  </div>
+                                )}
+                                <div className="font-mono text-xs mt-1 flex items-center gap-2">
+                                  ID: {gameId.slice(0, 8)}...{gameId.slice(-6)}
+                                  <CopyButton text={gameId} variant="icon" />
+                                </div>
+                              </div>
+                            </div>
+                            <Button
+                              onClick={() => handleJoinGame(gameId)}
+                              disabled={joinGameMutation.isPending}
+                              size="sm"
+                              variant="default"
+                            >
+                              {joinGameMutation.isPending ? (
+                                <>
+                                  <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                                  Rejoining...
+                                </>
+                              ) : (
+                                <>
+                                  <Play className="mr-2 h-3 w-3" />
+                                  Rejoin Game
+                                </>
+                              )}
+                            </Button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Show empty state when no active or user active games */}
+            {!canRejoinGame &&
+              (!userActiveGames || userActiveGames.length === 0) && (
+                <div className="text-center py-8 flex flex-col gap-2 justify-center items-center text-muted-foreground">
+                  <Clock className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>No active games</p>
+                  <p className="text-sm">
+                    Create a new game or join an available game to get started!
+                  </p>
+                </div>
+              )}
           </TabsContent>
         </Tabs>
       </motion.div>

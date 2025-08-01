@@ -6,7 +6,14 @@ import Terminal from "vite-plugin-terminal";
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [tailwindcss(), react(), Terminal()],
+  plugins: [
+    tailwindcss(),
+    react(),
+    Terminal({
+      console: "terminal",
+      output: ["console", "terminal"],
+    }),
+  ],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),

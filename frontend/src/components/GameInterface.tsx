@@ -21,7 +21,16 @@ import {
 import { Badge } from "./ui/badge";
 import { Separator } from "./ui/separator";
 import { Progress } from "./ui/progress";
-import { Loader2, Target, Shield, Trophy, Users, Play, LogOut } from "lucide-react";
+import {
+  Loader2,
+  Target,
+  Shield,
+  Trophy,
+  Users,
+  Play,
+  LogOut,
+  Loader,
+} from "lucide-react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "motion/react";
 
@@ -43,7 +52,11 @@ const DIRECTION_EMOJIS = {
   [CONTRACT_CONFIG.DIRECTIONS.RIGHT]: "➡️",
 } as const;
 
-export function GameInterface({ gameId, onBackToLobby, onLeaveGame }: GameInterfaceProps) {
+export function GameInterface({
+  gameId,
+  onBackToLobby,
+  onLeaveGame,
+}: GameInterfaceProps) {
   const [selectedDirection, setSelectedDirection] = useState<Direction | null>(
     null,
   );
@@ -120,7 +133,7 @@ export function GameInterface({ gameId, onBackToLobby, onLeaveGame }: GameInterf
     ];
 
     return (
-      <motion.div 
+      <motion.div
         className="grid grid-cols-3 gap-4"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -141,12 +154,16 @@ export function GameInterface({ gameId, onBackToLobby, onLeaveGame }: GameInterf
               onClick={() => setSelectedDirection(direction)}
               className="h-20 flex flex-col gap-2 w-full transition-all duration-200"
             >
-              <motion.span 
+              <motion.span
                 className="text-2xl"
-                animate={selectedDirection === direction ? {
-                  scale: [1, 1.2, 1],
-                  rotate: [0, 10, -10, 0]
-                } : {}}
+                animate={
+                  selectedDirection === direction
+                    ? {
+                        scale: [1, 1.2, 1],
+                        rotate: [0, 10, -10, 0],
+                      }
+                    : {}
+                }
                 transition={{ duration: 0.3 }}
               >
                 {DIRECTION_EMOJIS[direction]}
@@ -176,14 +193,14 @@ export function GameInterface({ gameId, onBackToLobby, onLeaveGame }: GameInterf
                   animate={{ rotate: [0, 360] }}
                   transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
                 >
-                  <Users className="h-5 w-5" />
+                  <Loader className="h-5 w-5" />
                 </motion.div>
                 Waiting to Start
               </CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
               <div className="text-center">
-                <motion.p 
+                <motion.p
                   className="text-sm text-muted-foreground mb-4"
                   animate={{ opacity: [0.7, 1, 0.7] }}
                   transition={{ duration: 2, repeat: Infinity }}
@@ -264,13 +281,13 @@ export function GameInterface({ gameId, onBackToLobby, onLeaveGame }: GameInterf
             <CardHeader>
               <CardTitle className="flex items-center justify-center gap-2">
                 <motion.div
-                  animate={{ 
+                  animate={{
                     rotate: [0, 360],
-                    scale: [1, 1.2, 1]
+                    scale: [1, 1.2, 1],
                   }}
-                  transition={{ 
+                  transition={{
                     rotate: { duration: 2, repeat: Infinity, ease: "linear" },
-                    scale: { duration: 1, repeat: Infinity }
+                    scale: { duration: 1, repeat: Infinity },
                   }}
                 >
                   <Trophy className="h-5 w-5 text-yellow-500" />
@@ -279,7 +296,7 @@ export function GameInterface({ gameId, onBackToLobby, onLeaveGame }: GameInterf
               </CardTitle>
             </CardHeader>
             <CardContent className="text-center flex flex-col gap-4">
-              <motion.div 
+              <motion.div
                 className="text-2xl font-bold"
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
@@ -294,12 +311,16 @@ export function GameInterface({ gameId, onBackToLobby, onLeaveGame }: GameInterf
                 transition={{ delay: 0.5, duration: 0.5 }}
               >
                 {gameState.winner ? (
-                  <motion.div 
+                  <motion.div
                     className="text-lg"
-                    animate={gameState.winner === currentAccount?.address ? {
-                      scale: [1, 1.1, 1],
-                      color: ["#000", "#22c55e", "#000"]
-                    } : {}}
+                    animate={
+                      gameState.winner === currentAccount?.address
+                        ? {
+                            scale: [1, 1.1, 1],
+                            color: ["#000", "#22c55e", "#000"],
+                          }
+                        : {}
+                    }
                     transition={{ duration: 2, repeat: Infinity }}
                   >
                     🏆 Winner:{" "}
@@ -318,13 +339,19 @@ export function GameInterface({ gameId, onBackToLobby, onLeaveGame }: GameInterf
                 transition={{ delay: 0.7 }}
                 className="flex gap-2 mt-4"
               >
-                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <motion.div
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
                   <Button onClick={onBackToLobby} variant="outline">
                     Back to Lobby
                   </Button>
                 </motion.div>
                 {onLeaveGame && (
-                  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                  <motion.div
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
                     <Button onClick={onLeaveGame} variant="destructive">
                       <LogOut className="mr-2 h-4 w-4" />
                       Leave Game
@@ -350,7 +377,7 @@ export function GameInterface({ gameId, onBackToLobby, onLeaveGame }: GameInterf
       ((gameState.currentRound - 1) / CONTRACT_CONFIG.MAX_ROUNDS) * 100;
 
     return (
-      <motion.div 
+      <motion.div
         className="space-y-6"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -365,7 +392,7 @@ export function GameInterface({ gameId, onBackToLobby, onLeaveGame }: GameInterf
           <Card>
             <CardContent className="pt-6">
               <div className="text-center space-y-4">
-                <motion.div 
+                <motion.div
                   className="text-3xl font-bold"
                   key={`${gameState.player1Score}-${gameState.player2Score}`}
                   initial={{ scale: 1.2, color: "#22c55e" }}
@@ -408,9 +435,9 @@ export function GameInterface({ gameId, onBackToLobby, onLeaveGame }: GameInterf
                 {isShooter ? (
                   <>
                     <motion.div
-                      animate={{ 
+                      animate={{
                         rotate: [0, 10, -10, 0],
-                        scale: [1, 1.1, 1]
+                        scale: [1, 1.1, 1],
                       }}
                       transition={{ duration: 2, repeat: Infinity }}
                     >
@@ -421,9 +448,9 @@ export function GameInterface({ gameId, onBackToLobby, onLeaveGame }: GameInterf
                 ) : (
                   <>
                     <motion.div
-                      animate={{ 
+                      animate={{
                         x: [-2, 2, -2, 2, 0],
-                        scale: [1, 1.1, 1]
+                        scale: [1, 1.1, 1],
                       }}
                       transition={{ duration: 2, repeat: Infinity }}
                     >
@@ -440,96 +467,96 @@ export function GameInterface({ gameId, onBackToLobby, onLeaveGame }: GameInterf
               </CardDescription>
             </CardHeader>
 
-          <CardContent className="space-y-6">
-            {(() => {
-              // Check if current player has already submitted their move
-              const hasSubmittedMove = isShooter
-                ? roundInfo.shootSubmitted
-                : roundInfo.keepSubmitted;
+            <CardContent className="space-y-6">
+              {(() => {
+                // Check if current player has already submitted their move
+                const hasSubmittedMove = isShooter
+                  ? roundInfo.shootSubmitted
+                  : roundInfo.keepSubmitted;
 
-              // If both moves submitted, show resolving message
-              if (roundInfo.shootSubmitted && roundInfo.keepSubmitted) {
+                // If both moves submitted, show resolving message
+                if (roundInfo.shootSubmitted && roundInfo.keepSubmitted) {
+                  return (
+                    <div className="text-center py-8">
+                      <div className="text-lg font-medium mb-2">
+                        ⏳ Resolving round...
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        Both players have submitted their moves
+                      </div>
+                    </div>
+                  );
+                }
+
+                // If current player hasn't submitted, allow them to play
+                if (!hasSubmittedMove) {
+                  return (
+                    <>
+                      {renderDirectionButtons()}
+
+                      <Button
+                        onClick={handleSubmitMove}
+                        disabled={
+                          selectedDirection === null ||
+                          shootMutation.isPending ||
+                          keepMutation.isPending
+                        }
+                        className="w-full"
+                        size="lg"
+                      >
+                        {shootMutation.isPending || keepMutation.isPending ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Submitting...
+                          </>
+                        ) : (
+                          <>{isShooter ? "🥅 Shoot!" : "🧤 Dive!"}</>
+                        )}
+                      </Button>
+                    </>
+                  );
+                }
+
+                // Current player has submitted, waiting for opponent
                 return (
                   <div className="text-center py-8">
                     <div className="text-lg font-medium mb-2">
-                      ⏳ Resolving round...
+                      ✅ Move submitted!
                     </div>
                     <div className="text-sm text-muted-foreground">
-                      Both players have submitted their moves
+                      Waiting for opponent to submit their move...
                     </div>
                   </div>
                 );
-              }
+              })()}
+            </CardContent>
+          </Card>
 
-              // If current player hasn't submitted, allow them to play
-              if (!hasSubmittedMove) {
-                return (
-                  <>
-                    {renderDirectionButtons()}
-
-                    <Button
-                      onClick={handleSubmitMove}
-                      disabled={
-                        selectedDirection === null ||
-                        shootMutation.isPending ||
-                        keepMutation.isPending
-                      }
-                      className="w-full"
-                      size="lg"
-                    >
-                      {shootMutation.isPending || keepMutation.isPending ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Submitting...
-                        </>
-                      ) : (
-                        <>{isShooter ? "🥅 Shoot!" : "🧤 Dive!"}</>
-                      )}
-                    </Button>
-                  </>
-                );
-              }
-
-              // Current player has submitted, waiting for opponent
-              return (
-                <div className="text-center py-8">
-                  <div className="text-lg font-medium mb-2">
-                    ✅ Move submitted!
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    Waiting for opponent to submit their move...
-                  </div>
+          {/* Round Status */}
+          <Card>
+            <CardContent className="pt-6">
+              <div className="grid grid-cols-2 gap-4 text-center">
+                <div>
+                  <Badge
+                    variant={roundInfo.shootSubmitted ? "default" : "secondary"}
+                  >
+                    {roundInfo.shootSubmitted
+                      ? "✅ Shot Submitted"
+                      : "⏳ Waiting for Shot"}
+                  </Badge>
                 </div>
-              );
-            })()}
-          </CardContent>
-        </Card>
-
-        {/* Round Status */}
-        <Card>
-          <CardContent className="pt-6">
-            <div className="grid grid-cols-2 gap-4 text-center">
-              <div>
-                <Badge
-                  variant={roundInfo.shootSubmitted ? "default" : "secondary"}
-                >
-                  {roundInfo.shootSubmitted
-                    ? "✅ Shot Submitted"
-                    : "⏳ Waiting for Shot"}
-                </Badge>
+                <div>
+                  <Badge
+                    variant={roundInfo.keepSubmitted ? "default" : "secondary"}
+                  >
+                    {roundInfo.keepSubmitted
+                      ? "✅ Dive Submitted"
+                      : "⏳ Waiting for Dive"}
+                  </Badge>
+                </div>
               </div>
-              <div>
-                <Badge
-                  variant={roundInfo.keepSubmitted ? "default" : "secondary"}
-                >
-                  {roundInfo.keepSubmitted
-                    ? "✅ Dive Submitted"
-                    : "⏳ Waiting for Dive"}
-                </Badge>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
         </motion.div>
       </motion.div>
     );
@@ -555,7 +582,9 @@ export function GameInterface({ gameId, onBackToLobby, onLeaveGame }: GameInterf
           <div className="text-center py-8">
             <p className="text-lg font-medium mb-4">Game not found</p>
             <div className="flex gap-2 justify-center">
-              <Button onClick={onBackToLobby} variant="outline">Back to Lobby</Button>
+              <Button onClick={onBackToLobby} variant="outline">
+                Back to Lobby
+              </Button>
               {onLeaveGame && (
                 <Button onClick={onLeaveGame} variant="destructive">
                   <LogOut className="mr-2 h-4 w-4" />

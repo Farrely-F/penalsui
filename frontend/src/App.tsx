@@ -176,6 +176,7 @@ function App() {
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 1.05 }}
                   transition={{ duration: 0.5 }}
+                  className="w-full"
                 >
                   <GameInterface
                     gameId={currentGameId}

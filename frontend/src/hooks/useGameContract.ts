@@ -228,6 +228,151 @@ export function useCreateGame() {
   });
 }
 
+// Hook for fetching user's active games (where user is either player1 or player2)
+export function useUserActiveGames() {
+  const suiClient = useSuiClient();
+  const currentAccount = useCurrentAccount();
+
+  return useQuery({
+    queryKey: ["user-active-games", currentAccount?.address],
+    queryFn: async (): Promise<
+      Array<{ gameId: string; gameState: GameState }>
+    > => {
+      if (!currentAccount) {
+        return [];
+      }
+
+      try {
+        // Get all games first
+        const result = await suiClient.devInspectTransactionBlock({
+          transactionBlock: (() => {
+            const tx = new Transaction();
+            tx.moveCall({
+              target: `${CONTRACT_CONFIG.PACKAGE_ID}::${CONTRACT_CONFIG.MODULE_NAME}::get_available_games`,
+              arguments: [tx.object(CONTRACT_CONFIG.GAME_REGISTRY_ID)],
+            });
+            return tx;
+          })(),
+          sender:
+            "0x0000000000000000000000000000000000000000000000000000000000000000",
+        });
+
+        if (!result.results?.[0]?.returnValues?.[0]) {
+          return [];
+        }
+
+        const gameIds: string[] = [];
+        const returnValue = result.results[0].returnValues[0];
+
+        // Parse game IDs (same logic as useAvailableGames)
+        if (Array.isArray(returnValue) && Array.isArray(returnValue[0])) {
+          const gameIdData = returnValue[0];
+
+          if (Array.isArray(gameIdData) && gameIdData.length >= 1) {
+            const length = gameIdData[0];
+
+            if (length > 0) {
+              const totalBytes = gameIdData.length - 1;
+              const bytesPerGameId = 32;
+              const numGameIds = Math.floor(totalBytes / bytesPerGameId);
+
+              for (let i = 0; i < numGameIds && i < length; i++) {
+                const startIndex = 1 + i * bytesPerGameId;
+                const endIndex = startIndex + bytesPerGameId;
+
+                if (endIndex <= gameIdData.length) {
+                  const bytes = gameIdData.slice(startIndex, endIndex);
+                  const hexBytes = bytes
+                    .map((b) => b.toString(16).padStart(2, "0"))
+                    .join("");
+                  const gameId = `0x${hexBytes}`;
+                  gameIds.push(gameId);
+                }
+              }
+            }
+          }
+        }
+
+        // Filter for user's active games (where user is either player1 or player2)
+        const userActiveGames = [];
+        for (const gameId of gameIds) {
+          try {
+            const gameStateResult = await suiClient.devInspectTransactionBlock({
+              transactionBlock: (() => {
+                const tx = new Transaction();
+                tx.moveCall({
+                  target: `${CONTRACT_CONFIG.PACKAGE_ID}::${CONTRACT_CONFIG.MODULE_NAME}::get_game_state`,
+                  arguments: [tx.object(gameId)],
+                });
+                return tx;
+              })(),
+              sender:
+                "0x0000000000000000000000000000000000000000000000000000000000000000",
+            });
+
+            if (gameStateResult.results?.[0]?.returnValues) {
+              const values = gameStateResult.results[0].returnValues;
+
+              const player1 = parseAddress(values[0]);
+              let player2 = null;
+              if (
+                values[1] &&
+                Array.isArray(values[1]) &&
+                values[1].length > 0
+              ) {
+                player2 = parseAddress(values[1][0]);
+              }
+              const started = parseBoolean(values[2]);
+              const finished = parseBoolean(values[3]);
+
+              const gameState: GameState = {
+                player1,
+                player2,
+                started,
+                finished,
+                currentRound: parseInt(String(values[4]?.[0] || 1)),
+                player1Score: parseInt(String(values[5]?.[0] || 0)),
+                player2Score: parseInt(String(values[6]?.[0] || 0)),
+                winner: values[7]?.[0] ? parseAddress(values[7]) : null,
+              };
+
+              // Include games where user is either player1 or player2 and game is not finished
+              const isUserPlayer1 = gameState.player1 === currentAccount.address;
+              const isUserPlayer2 = gameState.player2 === currentAccount.address;
+              const isUserParticipant = isUserPlayer1 || isUserPlayer2;
+              
+              // Debug: Uncomment to see user active games filtering
+              // console.log(`👤 User active game ${gameId} check:`, {
+              //   player1: gameState.player1,
+              //   player2: gameState.player2,
+              //   currentUser: currentAccount.address,
+              //   isUserPlayer1,
+              //   isUserPlayer2,
+              //   isUserParticipant,
+              //   finished: gameState.finished,
+              //   willInclude: isUserParticipant && !gameState.finished
+              // });
+              
+              if (isUserParticipant && !gameState.finished) {
+                userActiveGames.push({ gameId, gameState });
+              }
+            }
+          } catch (error) {
+            console.error(`Error fetching game state for ${gameId}:`, error);
+          }
+        }
+
+        return userActiveGames;
+      } catch (error) {
+        console.error("Error fetching user active games:", error);
+        return [];
+      }
+    },
+    enabled: !!currentAccount,
+    refetchInterval: 5000,
+  });
+}
+
 // Hook for joining a game
 export function useJoinGame() {
   const { mutateAsync: signAndExecuteTransaction } =
@@ -613,7 +758,11 @@ export function useAvailableGames() {
                 values[1].length > 0
               ) {
                 // It's Some(address)
-                player2 = parseAddress(values[1][0]);
+                const parsedPlayer2 = parseAddress(values[1][0]);
+                // Check if it's a valid address (not zero address)
+                if (parsedPlayer2 && parsedPlayer2 !== "0" && parsedPlayer2 !== "0x0000000000000000000000000000000000000000000000000000000000000000") {
+                  player2 = parsedPlayer2;
+                }
               }
               // If values[1] is empty array or null, it's None - player2 stays null
               const started = parseBoolean(values[2]);
@@ -643,15 +792,30 @@ export function useAvailableGames() {
               // console.log(`Game state for ${gameId}:`, gameState);
               // console.log(`Filter check - started: ${gameState.started}, player2: ${gameState.player2}`);
 
-              // Show games that are not finished, regardless of started status
-              // This allows both players to see and rejoin their active games
-              const shouldInclude = !gameState.finished;
+              // Show games that are available for joining (no opponent yet and not finished)
+              // Games without player2 (null/empty/zero) are available for joining
+              // BUT exclude games where current user is already player1 (those should be in "My Active Games")
+              const hasNoOpponent = !gameState.player2 || gameState.player2 === "0" || gameState.player2 === "0x0000000000000000000000000000000000000000000000000000000000000000";
+              const isNotUserGame = gameState.player1 !== currentAccount.address;
+              const shouldInclude = !gameState.finished && hasNoOpponent && isNotUserGame;
+              
+              // Debug: Uncomment to see filtering logic
+              // console.log(`🎮 Game ${gameId} filter check:`, {
+              //   player1: gameState.player1,
+              //   player2: gameState.player2,
+              //   currentUser: currentAccount.address,
+              //   finished: gameState.finished,
+              //   hasNoOpponent,
+              //   isNotUserGame,
+              //   shouldInclude
+              // });
 
               // console.log(`Filter evaluation for ${gameId}:`, {
-              //   finished: gameState.finished,
-              //   shouldInclude,
-              //   gameState
-              // });
+               //   finished: gameState.finished,
+               //   hasNoOpponent,
+               //   shouldInclude,
+               //   gameState
+               // });
 
               if (shouldInclude) {
                 availableGames.push({ gameId, gameState });
