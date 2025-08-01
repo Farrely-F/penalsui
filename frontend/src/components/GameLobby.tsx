@@ -39,11 +39,11 @@ export function GameLobby({ onGameCreated, onGameJoined }: GameLobbyProps) {
   } = useAvailableGames();
 
   // Debug logging
-  console.log("GameLobby Debug:", {
-    availableGames,
-    gamesLoading,
-    currentAccount: currentAccount?.address,
-  });
+  // console.log("GameLobby Debug:", {
+  //   availableGames,
+  //   gamesLoading,
+  //   currentAccount: currentAccount?.address,
+  // });
 
   const handleCreateGame = async () => {
     if (!currentAccount) {
@@ -223,7 +223,7 @@ export function GameLobby({ onGameCreated, onGameJoined }: GameLobbyProps) {
             Join an existing game waiting for a second player
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="max-h-[calc(100vh-30rem)] overflow-auto">
           {gamesLoading ? (
             <div className="flex items-center justify-center py-8">
               <Loader2 className="h-6 w-6 animate-spin" />

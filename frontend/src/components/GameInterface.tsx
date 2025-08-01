@@ -7,6 +7,7 @@ import {
   useShoot,
   useKeep,
 } from "../hooks/useGameContract";
+import { useGoalAudio } from "../hooks/useGoalAudio";
 import { CONTRACT_CONFIG, Direction } from "../contracts/config";
 import { Button } from "./ui/button";
 import {
@@ -54,6 +55,9 @@ export function GameInterface({ gameId, onBackToLobby }: GameInterfaceProps) {
   const shootMutation = useShoot();
   const keepMutation = useKeep();
 
+  // Hook to play goal audio when user scores
+  useGoalAudio(gameState);
+
   const isLoading = gameLoading || roundLoading;
 
   // Determine if current user is shooter or keeper this round
@@ -61,13 +65,13 @@ export function GameInterface({ gameId, onBackToLobby }: GameInterfaceProps) {
   const isKeeper = roundInfo?.keeper === currentAccount?.address;
 
   // Debug logging
-  console.log("GameInterface Debug:", {
-    roundInfo,
-    currentAccount: currentAccount?.address,
-    isShooter,
-    isKeeper,
-    gameState,
-  });
+  // console.log("GameInterface Debug:", {
+  //   roundInfo,
+  //   currentAccount: currentAccount?.address,
+  //   isShooter,
+  //   isKeeper,
+  //   gameState,
+  // });
 
   const handleStartGame = async () => {
     try {

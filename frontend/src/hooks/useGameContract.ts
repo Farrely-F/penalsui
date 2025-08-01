@@ -118,10 +118,10 @@ export function useCreateGame() {
       });
 
       // Debug: Log the initial result structure
-      console.log(
-        "Initial transaction result:",
-        JSON.stringify(result, null, 2),
-      );
+      // console.log(
+      //   "Initial transaction result:",
+      //   JSON.stringify(result, null, 2),
+      // );
 
       // Fetch full transaction details with parsed data (with retry for network propagation)
       let fullTxResult: any = null;
@@ -161,10 +161,10 @@ export function useCreateGame() {
         );
       }
 
-      console.log(
-        "Full transaction result:",
-        JSON.stringify(fullTxResult, null, 2),
-      );
+      // console.log(
+      //   "Full transaction result:",
+      //   JSON.stringify(fullTxResult, null, 2),
+      // );
 
       // Try multiple approaches to extract game ID
       let gameId = null;
@@ -181,21 +181,21 @@ export function useCreateGame() {
         ) as any;
         if (sharedObject) {
           gameId = sharedObject.objectId;
-          console.log("Found game ID in objectChanges:", gameId);
+          // console.log("Found game ID in objectChanges:", gameId);
         }
       }
 
       // Approach 2: Check effects.created for shared objects
       if (!gameId && fullTxResult.effects?.created) {
         const sharedObject = fullTxResult.effects.created.find((obj: any) => {
-          console.log("Checking effects.created object:", obj);
+          // console.log("Checking effects.created object:", obj);
           return (
             obj.owner && typeof obj.owner === "object" && "Shared" in obj.owner
           );
         });
         if (sharedObject) {
           gameId = sharedObject.reference?.objectId;
-          console.log("Found game ID in effects.created:", gameId);
+          // console.log("Found game ID in effects.created:", gameId);
         }
       }
 
@@ -206,11 +206,11 @@ export function useCreateGame() {
         );
         if (gameCreatedEvent && (gameCreatedEvent.parsedJson as any)?.game_id) {
           gameId = (gameCreatedEvent.parsedJson as any).game_id;
-          console.log("Found game ID in events:", gameId);
+          // console.log("Found game ID in events:", gameId);
         }
       }
 
-      console.log("Final extracted game ID:", gameId);
+      // console.log("Final extracted game ID:", gameId);
 
       return { ...result, gameId };
     },
@@ -409,7 +409,7 @@ export function useCurrentRoundInfo(gameId: string | null) {
 
         if (result.results?.[0]?.returnValues) {
           const values = result.results[0].returnValues;
-          console.log("Round info raw values:", values);
+          // console.log("Round info raw values:", values);
 
           const roundNumber = parseInt(String(values[0]) || "0");
           const shooter = parseAddress(values[1]);
@@ -417,13 +417,13 @@ export function useCurrentRoundInfo(gameId: string | null) {
           const shootSubmitted = parseBoolean(values[3]);
           const keepSubmitted = parseBoolean(values[4]);
 
-          console.log("Parsed values:", {
-            roundNumber,
-            shooter,
-            keeper,
-            shootSubmitted,
-            keepSubmitted,
-          });
+          // console.log("Parsed values:", {
+          //   roundNumber,
+          //   shooter,
+          //   keeper,
+          //   shootSubmitted,
+          //   keepSubmitted,
+          // });
 
           return {
             roundNumber,
@@ -528,7 +528,7 @@ export function useAvailableGames() {
             "0x0000000000000000000000000000000000000000000000000000000000000000",
         });
 
-        console.log("Raw result:", result);
+        // console.log("Raw result:", result);
 
         if (!result.results?.[0]?.returnValues?.[0]) {
           console.log("No return values found");
@@ -544,27 +544,27 @@ export function useAvailableGames() {
 
           if (Array.isArray(gameIdData) && gameIdData.length >= 1) {
             const length = gameIdData[0]; // Number of game IDs
-            console.log("Number of games:", length);
+            // console.log("Number of games:", length);
 
             if (length > 0) {
               // Each game ID is 32 bytes, so we need to extract multiple IDs
               const totalBytes = gameIdData.length - 1; // Exclude the length byte
               const bytesPerGameId = 32;
               const numGameIds = Math.floor(totalBytes / bytesPerGameId);
-              
-              console.log("Total bytes:", totalBytes, "Expected game IDs:", numGameIds);
-              
+
+              // console.log("Total bytes:", totalBytes, "Expected game IDs:", numGameIds);
+
               for (let i = 0; i < numGameIds && i < length; i++) {
-                const startIndex = 1 + (i * bytesPerGameId); // Skip length byte + offset
+                const startIndex = 1 + i * bytesPerGameId; // Skip length byte + offset
                 const endIndex = startIndex + bytesPerGameId;
-                
+
                 if (endIndex <= gameIdData.length) {
                   const bytes = gameIdData.slice(startIndex, endIndex);
                   const hexBytes = bytes
                     .map((b) => b.toString(16).padStart(2, "0"))
                     .join("");
                   const gameId = `0x${hexBytes}`;
-                  console.log(`Extracted game ID ${i + 1}:`, gameId);
+                  // console.log(`Extracted game ID ${i + 1}:`, gameId);
                   gameIds.push(gameId);
                 }
               }
@@ -572,7 +572,7 @@ export function useAvailableGames() {
           }
         }
 
-        console.log("All game IDs:", gameIds);
+        // console.log("All game IDs:", gameIds);
 
         // Now fetch game states and filter for available games
         const availableGames = [];
@@ -593,13 +593,17 @@ export function useAvailableGames() {
 
             if (gameStateResult.results?.[0]?.returnValues) {
               const values = gameStateResult.results[0].returnValues;
-              console.log(`Raw game state values for ${gameId}:`, values);
+              // console.log(`Raw game state values for ${gameId}:`, values);
 
               const player1 = parseAddress(values[0]);
               // Handle Option<address> for player2
               let player2 = null;
               // Option<address> in Move: Some(addr) = [[addr_bytes]], None = []
-              if (values[1] && Array.isArray(values[1]) && values[1].length > 0) {
+              if (
+                values[1] &&
+                Array.isArray(values[1]) &&
+                values[1].length > 0
+              ) {
                 // It's Some(address)
                 player2 = parseAddress(values[1][0]);
               }
@@ -607,15 +611,15 @@ export function useAvailableGames() {
               const started = parseBoolean(values[2]);
               const finished = parseBoolean(values[3]);
 
-              console.log(`Parsed values for ${gameId}:`, {
-                player1,
-                player2,
-                started,
-                finished,
-                rawPlayer2: values[1],
-                rawStarted: values[2],
-                rawFinished: values[3]
-              });
+              // console.log(`Parsed values for ${gameId}:`, {
+              //   player1,
+              //   player2,
+              //   started,
+              //   finished,
+              //   rawPlayer2: values[1],
+              //   rawStarted: values[2],
+              //   rawFinished: values[3]
+              // });
 
               const gameState: GameState = {
                 player1,
@@ -628,33 +632,38 @@ export function useAvailableGames() {
                 winner: values[7]?.[0] ? parseAddress(values[7]) : null,
               };
 
-              console.log(`Game state for ${gameId}:`, gameState);
-              console.log(`Filter check - started: ${gameState.started}, player2: ${gameState.player2}`);
+              // console.log(`Game state for ${gameId}:`, gameState);
+              // console.log(`Filter check - started: ${gameState.started}, player2: ${gameState.player2}`);
 
               // Ultra-lenient filtering - prioritize showing games over hiding them
               // Only exclude games that are DEFINITELY started AND have DEFINITELY a second player
-              const hasSecondPlayer = gameState.player2 !== null && gameState.player2 !== undefined && gameState.player2 !== "";
+              const hasSecondPlayer =
+                gameState.player2 !== null &&
+                gameState.player2 !== undefined &&
+                gameState.player2 !== "";
               const isDefinitelyStarted = gameState.started === true;
-              
+
               // Only exclude if BOTH conditions are true (game is started AND has second player)
               const shouldExclude = isDefinitelyStarted && hasSecondPlayer;
               const shouldInclude = !shouldExclude;
-              
-              console.log(`Filter evaluation for ${gameId}:`, {
-                started: gameState.started,
-                isDefinitelyStarted,
-                player2: gameState.player2,
-                hasSecondPlayer,
-                shouldExclude,
-                shouldInclude,
-                gameState
-              });
-              
+
+              // console.log(`Filter evaluation for ${gameId}:`, {
+              //   started: gameState.started,
+              //   isDefinitelyStarted,
+              //   player2: gameState.player2,
+              //   hasSecondPlayer,
+              //   shouldExclude,
+              //   shouldInclude,
+              //   gameState
+              // });
+
               if (shouldInclude) {
                 console.log(`✅ Adding game ${gameId} to available games`);
                 availableGames.push({ gameId, gameState });
               } else {
-                console.log(`❌ Filtering out game ${gameId} - isDefinitelyStarted: ${isDefinitelyStarted} AND hasSecondPlayer: ${hasSecondPlayer}`);
+                console.log(
+                  `❌ Filtering out game ${gameId} - isDefinitelyStarted: ${isDefinitelyStarted} AND hasSecondPlayer: ${hasSecondPlayer}`,
+                );
               }
             }
           } catch (error) {

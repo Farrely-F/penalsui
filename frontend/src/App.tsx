@@ -10,6 +10,7 @@ import { Toaster } from "./components/ui/sonner";
 import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { Background } from "./components/Background";
+import { AudioPlayer } from "./components/AudioPlayer";
 
 type AppState = "lobby" | "waiting" | "game";
 
@@ -79,6 +80,7 @@ function App() {
 
   return (
     <>
+      <AudioPlayer />
       <div className="flex flex-col items-center justify-center bg-gradient-to-br from-green-50 to-blue-50 dark:from-green-950 dark:to-blue-950 bg-none">
         <Background />
         {/* Header */}
