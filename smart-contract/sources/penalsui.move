@@ -436,6 +436,6 @@ public fun direction_right(): u8 { DIRECTION_RIGHT }
 public fun max_rounds(): u8 { MAX_ROUNDS }
 
 // Get available games (games that need a second player)
-entry fun get_available_games(registry: &GameRegistry): vector<ID> {
+public fun get_available_games(registry: &GameRegistry): vector<ID> {
     registry.games
 }
