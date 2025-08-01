@@ -260,395 +260,284 @@ export function GameLobby({
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.2 }}
+        className="-mt-6"
       >
         <Tabs
           defaultValue={canRejoinGame ? "active" : "available"}
           className="w-full"
         >
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="available" className="flex items-center gap-2">
-              <Clock className="h-4 w-4" />
-              Available Games
-            </TabsTrigger>
-            <TabsTrigger
-              value="active"
-              className="flex items-center gap-2"
-              disabled={!canRejoinGame}
+            <motion.div
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              transition={{ type: "spring", stiffness: 400, damping: 17 }}
             >
-              <Play className="h-4 w-4" />
-              My Active Game
-              {canRejoinGame && (
-                <Badge variant="secondary" className="ml-1 text-xs">
-                  1
-                </Badge>
-              )}
-            </TabsTrigger>
+              <TabsTrigger
+                value="available"
+                className="flex items-center gap-2 w-full"
+              >
+                <motion.div
+                  animate={{ rotate: [0, 5, -5, 0] }}
+                  transition={{
+                    duration: 2,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                  }}
+                >
+                  <Clock className="h-4 w-4" />
+                </motion.div>
+                Available Games
+              </TabsTrigger>
+            </motion.div>
+            <motion.div
+              whileHover={{ scale: canRejoinGame ? 1.02 : 1 }}
+              whileTap={{ scale: canRejoinGame ? 0.98 : 1 }}
+              transition={{ type: "spring", stiffness: 400, damping: 17 }}
+            >
+              <TabsTrigger
+                value="active"
+                className="flex items-center gap-2 w-full"
+                disabled={!canRejoinGame}
+              >
+                <motion.div
+                  animate={canRejoinGame ? { scale: [1, 1.1, 1] } : {}}
+                  transition={{
+                    duration: 1.5,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                  }}
+                >
+                  <Play className="h-4 w-4" />
+                </motion.div>
+                My Active Game
+                {canRejoinGame && (
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ type: "spring", stiffness: 500, damping: 15 }}
+                  >
+                    <Badge variant="secondary" className="ml-1 text-xs">
+                      1
+                    </Badge>
+                  </motion.div>
+                )}
+              </TabsTrigger>
+            </motion.div>
           </TabsList>
 
-          <TabsContent value="available" className="space-y-6">
-            <div className="grid md:grid-cols-2 gap-6">
-              {/* Create Game */}
-              <motion.div
-                whileHover={{ scale: 1.02 }}
-                transition={{ type: "spring", stiffness: 300 }}
-              >
-                <Card className="h-full">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
+          <TabsContent value="available">
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 20 }}
+              transition={{ duration: 0.3, ease: "easeInOut" }}
+              className="space-y-6"
+            >
+              <div className="grid md:grid-cols-2 gap-2">
+                {/* Create Game */}
+                <motion.div
+                  whileHover={{ scale: 1.02 }}
+                  transition={{ type: "spring", stiffness: 300 }}
+                >
+                  <Card className="h-full">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <motion.div
+                          animate={{ y: [-2, 0, -2] }}
+                          transition={{
+                            duration: 1,
+                            repeat: Infinity,
+                            ease: "easeInOut",
+                          }}
+                        >
+                          ⚽
+                        </motion.div>
+                        Create New Game
+                      </CardTitle>
+                      <CardDescription>
+                        Start a new penalty shootout match and wait for an
+                        opponent
+                      </CardDescription>
+                    </CardHeader>
+                    <CardFooter className="mt-auto">
                       <motion.div
-                        animate={{ y: [-2, 0, -2] }}
-                        transition={{
-                          duration: 1,
-                          repeat: Infinity,
-                          ease: "easeInOut",
-                        }}
+                        className="w-full"
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
                       >
-                        ⚽
+                        <Button
+                          onClick={handleCreateGame}
+                          disabled={createGameMutation.isPending}
+                          className="w-full"
+                          size="lg"
+                        >
+                          {createGameMutation.isPending ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Creating Game...
+                            </>
+                          ) : (
+                            <>
+                              <Plus className="mr-2 h-4 w-4" />
+                              Create Game
+                            </>
+                          )}
+                        </Button>
                       </motion.div>
-                      Create New Game
-                    </CardTitle>
-                    <CardDescription>
-                      Start a new penalty shootout match and wait for an
-                      opponent
-                    </CardDescription>
-                  </CardHeader>
-                  <CardFooter className="mt-auto">
-                    <motion.div
-                      className="w-full"
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                    >
+                    </CardFooter>
+                  </Card>
+                </motion.div>
+
+                {/* Join Game */}
+                <motion.div
+                  whileHover={{ scale: 1.02 }}
+                  transition={{ type: "spring", stiffness: 300 }}
+                >
+                  <Card className="h-full">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Users className="h-5 w-5" />
+                        Join Existing Game
+                      </CardTitle>
+                      <CardDescription>
+                        Enter a game ID to join an existing match
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="gameId">Game ID</Label>
+                        <Input
+                          id="gameId"
+                          placeholder="Enter game ID..."
+                          value={gameIdToJoin}
+                          onChange={(e) => setGameIdToJoin(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (
+                              e.key === "Enter" &&
+                              !joinGameMutation.isPending
+                            ) {
+                              handleJoinGame();
+                            }
+                          }}
+                        />
+                      </div>
+                    </CardContent>
+                    <CardFooter>
                       <Button
-                        onClick={handleCreateGame}
-                        disabled={createGameMutation.isPending}
+                        onClick={() => handleJoinGame()}
+                        disabled={
+                          joinGameMutation.isPending || !gameIdToJoin.trim()
+                        }
                         className="w-full"
                         size="lg"
                       >
-                        {createGameMutation.isPending ? (
+                        {joinGameMutation.isPending ? (
                           <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Creating Game...
+                            Joining...
                           </>
                         ) : (
                           <>
-                            <Plus className="mr-2 h-4 w-4" />
-                            Create Game
+                            <Users className="mr-2 h-4 w-4" />
+                            Join Game
                           </>
                         )}
                       </Button>
-                    </motion.div>
-                  </CardFooter>
-                </Card>
-              </motion.div>
+                    </CardFooter>
+                  </Card>
+                </motion.div>
+              </div>
 
-              {/* Join Game */}
-              <motion.div
-                whileHover={{ scale: 1.02 }}
-                transition={{ type: "spring", stiffness: 300 }}
-              >
-                <Card className="h-full">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Users className="h-5 w-5" />
-                      Join Existing Game
-                    </CardTitle>
-                    <CardDescription>
-                      Enter a game ID to join an existing match
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="gameId">Game ID</Label>
-                      <Input
-                        id="gameId"
-                        placeholder="Enter game ID..."
-                        value={gameIdToJoin}
-                        onChange={(e) => setGameIdToJoin(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (
-                            e.key === "Enter" &&
-                            !joinGameMutation.isPending
-                          ) {
-                            handleJoinGame();
-                          }
-                        }}
-                      />
-                    </div>
-                  </CardContent>
-                  <CardFooter>
-                    <Button
-                      onClick={() => handleJoinGame()}
-                      disabled={
-                        joinGameMutation.isPending || !gameIdToJoin.trim()
-                      }
-                      className="w-full"
-                      size="lg"
-                    >
-                      {joinGameMutation.isPending ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Joining...
-                        </>
-                      ) : (
-                        <>
-                          <Users className="mr-2 h-4 w-4" />
-                          Join Game
-                        </>
-                      )}
-                    </Button>
-                  </CardFooter>
-                </Card>
-              </motion.div>
-            </div>
-
-            {/* Available Games Browser */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Clock className="h-5 w-5" />
-                    Available Games
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      refetchGames();
-                      refetchUserActiveGames();
-                    }}
-                    disabled={gamesLoading}
-                  >
-                    <RefreshCw
-                      className={`h-4 w-4 ${gamesLoading ? "animate-spin" : ""}`}
-                    />
-                  </Button>
-                </CardTitle>
-                <CardDescription>
-                  Join an existing game or rejoin your active games
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="max-h-[calc(100vh-30rem)] overflow-auto">
-                {gamesLoading ? (
-                  <div className="flex items-center justify-center py-8">
-                    <Loader2 className="h-6 w-6 animate-spin" />
-                    <span className="ml-2">Loading available games...</span>
-                  </div>
-                ) : availableGames && availableGames.length > 0 ? (
-                  <div className="space-y-3">
-                    {availableGames.map(({ gameId, gameState }) => {
-                      const isUserParticipant =
-                        currentAccount &&
-                        (gameState.player1 === currentAccount.address ||
-                          gameState.player2 === currentAccount.address);
-                      const isCreator =
-                        gameState.player1 === currentAccount?.address;
-                      const isPlayer2 =
-                        gameState.player2 === currentAccount?.address;
-
-                      return (
-                        <div
-                          key={gameId}
-                          className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
-                        >
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1">
-                              {isUserParticipant ? (
-                                <Badge
-                                  variant="default"
-                                  className="bg-green-600"
-                                >
-                                  Your Active Game
-                                </Badge>
-                              ) : (
-                                <Badge variant="secondary">
-                                  Waiting for Player
-                                </Badge>
-                              )}
-                            </div>
-                            <div className="text-sm text-muted-foreground">
-                              <div>
-                                Creator: {gameState.player1.slice(0, 6)}...
-                                {gameState.player1.slice(-4)}
-                                {isCreator && " (You)"}
-                              </div>
-                              {gameState.player2 && (
-                                <div>
-                                  Player 2: {gameState.player2.slice(0, 6)}...
-                                  {gameState.player2.slice(-4)}
-                                  {isPlayer2 && " (You)"}
-                                </div>
-                              )}
-                              <div className="font-mono text-xs mt-1 flex items-center gap-2">
-                                ID: {gameId.slice(0, 8)}...{gameId.slice(-6)}
-                                <CopyButton text={gameId} variant="icon" />
-                              </div>
-                            </div>
-                          </div>
-                          <Button
-                            onClick={() => handleJoinGame(gameId)}
-                            disabled={joinGameMutation.isPending}
-                            size="sm"
-                            variant={isUserParticipant ? "default" : "outline"}
-                          >
-                            {joinGameMutation.isPending ? (
-                              <>
-                                <Loader2 className="mr-2 h-3 w-3 animate-spin" />
-                                {isUserParticipant
-                                  ? "Rejoining..."
-                                  : "Joining..."}
-                              </>
-                            ) : isUserParticipant ? (
-                              <>
-                                <Play className="mr-2 h-3 w-3" />
-                                Rejoin Game
-                              </>
-                            ) : (
-                              "Join Game"
-                            )}
-                          </Button>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <div className="text-center py-8 flex flex-col gap-2 justify-center items-center text-muted-foreground">
-                    <Clock className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p>No available games at the moment</p>
-                    <p className="text-sm">
-                      Create a new game or check back later!
-                    </p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="active" className="space-y-6">
-            {canRejoinGame && (
-              <Card className="border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-green-700 dark:text-green-300">
-                    <Play className="h-5 w-5" />
-                    Resume Active Game
-                  </CardTitle>
-                  <CardDescription className="text-green-600 dark:text-green-400">
-                    You have an active game in progress
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="text-sm space-y-2">
-                    <div className="flex justify-between">
-                      <span>Game ID:</span>
-                      <span className="font-mono text-xs">
-                        {effectiveGameId?.slice(0, 8)}...
-                        {effectiveGameId?.slice(-6)}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Status:</span>
-                      <Badge variant="secondary">
-                        {!currentGameState?.started
-                          ? "Waiting for opponent"
-                          : currentGameState?.finished
-                            ? "Finished"
-                            : "In Progress"}
-                      </Badge>
-                    </div>
-                    {currentGameState?.started && (
-                      <div className="flex justify-between">
-                        <span>Score:</span>
-                        <span className="font-mono">
-                          {currentGameState.player1Score} -{" "}
-                          {currentGameState.player2Score}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      onClick={handleResumeGame}
-                      className="flex-1"
-                      size="sm"
-                    >
-                      <Play className="mr-2 h-4 w-4" />
-                      Resume Game
-                    </Button>
-                    {onLeaveGame && (
-                      <Button
-                        onClick={onLeaveGame}
-                        variant="destructive"
-                        size="sm"
-                      >
-                        <LogOut className="mr-2 h-4 w-4" />
-                        Leave Game
-                      </Button>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Show user active games */}
-            {userActiveGames && userActiveGames.length > 0 && (
+              {/* Available Games Browser */}
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center justify-between gap-2">
+                  <CardTitle className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <Users className="h-5 w-5" />
-                      Your Active Games
+                      <Clock className="h-5 w-5" />
+                      Available Games
                     </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        refetchGames();
-                        refetchUserActiveGames();
+                    <motion.div
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      transition={{
+                        type: "spring",
+                        stiffness: 400,
+                        damping: 17,
                       }}
-                      disabled={userActiveGamesLoading}
                     >
-                      <RefreshCw
-                        className={`h-4 w-4 ${userActiveGamesLoading ? "animate-spin" : ""}`}
-                      />
-                    </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          refetchGames();
+                          refetchUserActiveGames();
+                        }}
+                        disabled={gamesLoading}
+                      >
+                        <RefreshCw
+                          className={`h-4 w-4 ${gamesLoading ? "animate-spin" : ""}`}
+                        />
+                      </Button>
+                    </motion.div>
                   </CardTitle>
                   <CardDescription>
-                    Your active games that you can rejoin
+                    Join an existing game or rejoin your active games
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="max-h-[calc(100vh-30rem)] overflow-auto">
-                  {userActiveGamesLoading ? (
+                  {gamesLoading ? (
                     <div className="flex items-center justify-center py-8">
                       <Loader2 className="h-6 w-6 animate-spin" />
-                      <span className="ml-2">Loading your active games...</span>
+                      <span className="ml-2">Loading available games...</span>
                     </div>
-                  ) : (
+                  ) : availableGames && availableGames.length > 0 ? (
                     <div className="space-y-3">
-                      {userActiveGames.map(({ gameId, gameState }) => {
-                        const isPlayer1 =
+                      {availableGames.map(({ gameId, gameState }, index) => {
+                        const isUserParticipant =
+                          currentAccount &&
+                          (gameState.player1 === currentAccount.address ||
+                            gameState.player2 === currentAccount.address);
+                        const isCreator =
                           gameState.player1 === currentAccount?.address;
                         const isPlayer2 =
                           gameState.player2 === currentAccount?.address;
 
                         return (
-                          <div
+                          <motion.div
                             key={gameId}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{
+                              duration: 0.3,
+                              delay: index * 0.1,
+                              ease: "easeOut",
+                            }}
+                            whileHover={{
+                              scale: 1.02,
+                              transition: { duration: 0.2 },
+                            }}
                             className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
                           >
                             <div className="flex-1">
                               <div className="flex items-center gap-2 mb-1">
-                                <Badge
-                                  variant="default"
-                                  className="bg-green-600"
-                                >
-                                  Your Active Game{" "}
-                                  {isPlayer1 ? "(Creator)" : "(Player 2)"}
-                                </Badge>
+                                {isUserParticipant ? (
+                                  <Badge
+                                    variant="default"
+                                    className="bg-green-600"
+                                  >
+                                    Your Active Game
+                                  </Badge>
+                                ) : (
+                                  <Badge variant="secondary">
+                                    Waiting for Player
+                                  </Badge>
+                                )}
                               </div>
                               <div className="text-sm text-muted-foreground">
                                 <div>
                                   Creator: {gameState.player1.slice(0, 6)}...
                                   {gameState.player1.slice(-4)}
-                                  {isPlayer1 && " (You)"}
+                                  {isCreator && " (You)"}
                                 </div>
                                 {gameState.player2 && (
                                   <div>
@@ -667,40 +556,256 @@ export function GameLobby({
                               onClick={() => handleJoinGame(gameId)}
                               disabled={joinGameMutation.isPending}
                               size="sm"
-                              variant="default"
+                              variant={
+                                isUserParticipant ? "default" : "outline"
+                              }
                             >
                               {joinGameMutation.isPending ? (
                                 <>
                                   <Loader2 className="mr-2 h-3 w-3 animate-spin" />
-                                  Rejoining...
+                                  {isUserParticipant
+                                    ? "Rejoining..."
+                                    : "Joining..."}
                                 </>
-                              ) : (
+                              ) : isUserParticipant ? (
                                 <>
                                   <Play className="mr-2 h-3 w-3" />
                                   Rejoin Game
                                 </>
+                              ) : (
+                                "Join Game"
                               )}
                             </Button>
-                          </div>
+                          </motion.div>
                         );
                       })}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 flex flex-col gap-2 justify-center items-center text-muted-foreground">
+                      <Clock className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p>No available games at the moment</p>
+                      <p className="text-sm">
+                        Create a new game or check back later!
+                      </p>
                     </div>
                   )}
                 </CardContent>
               </Card>
-            )}
+            </motion.div>
+          </TabsContent>
 
-            {/* Show empty state when no active or user active games */}
-            {!canRejoinGame &&
-              (!userActiveGames || userActiveGames.length === 0) && (
-                <div className="text-center py-8 flex flex-col gap-2 justify-center items-center text-muted-foreground">
-                  <Clock className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>No active games</p>
-                  <p className="text-sm">
-                    Create a new game or join an available game to get started!
-                  </p>
-                </div>
+          <TabsContent value="active">
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.3, ease: "easeInOut" }}
+              className="space-y-6"
+            >
+              {canRejoinGame && (
+                <Card className="border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-green-700 dark:text-green-300">
+                      <Play className="h-5 w-5" />
+                      Resume Active Game
+                    </CardTitle>
+                    <CardDescription className="text-green-600 dark:text-green-400">
+                      You have an active game in progress
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="text-sm space-y-2">
+                      <div className="flex justify-between">
+                        <span>Game ID:</span>
+                        <span className="font-mono text-xs">
+                          {effectiveGameId?.slice(0, 8)}...
+                          {effectiveGameId?.slice(-6)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Status:</span>
+                        <Badge variant="secondary">
+                          {!currentGameState?.started
+                            ? "Waiting for opponent"
+                            : currentGameState?.finished
+                              ? "Finished"
+                              : "In Progress"}
+                        </Badge>
+                      </div>
+                      {currentGameState?.started && (
+                        <div className="flex justify-between">
+                          <span>Score:</span>
+                          <span className="font-mono">
+                            {currentGameState.player1Score} -{" "}
+                            {currentGameState.player2Score}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={handleResumeGame}
+                        className="flex-1"
+                        size="sm"
+                      >
+                        <Play className="mr-2 h-4 w-4" />
+                        Resume Game
+                      </Button>
+                      {onLeaveGame && (
+                        <Button
+                          onClick={onLeaveGame}
+                          variant="destructive"
+                          size="sm"
+                        >
+                          <LogOut className="mr-2 h-4 w-4" />
+                          Leave Game
+                        </Button>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
               )}
+
+              {/* Show user active games */}
+              {userActiveGames && userActiveGames.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <Users className="h-5 w-5" />
+                        Your Active Games
+                      </div>
+                      <motion.div
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        transition={{
+                          type: "spring",
+                          stiffness: 400,
+                          damping: 17,
+                        }}
+                      >
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            refetchGames();
+                            refetchUserActiveGames();
+                          }}
+                          disabled={userActiveGamesLoading}
+                        >
+                          <RefreshCw
+                            className={`h-4 w-4 ${userActiveGamesLoading ? "animate-spin" : ""}`}
+                          />
+                        </Button>
+                      </motion.div>
+                    </CardTitle>
+                    <CardDescription>
+                      Your active games that you can rejoin
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="max-h-[calc(100vh-30rem)] overflow-auto">
+                    {userActiveGamesLoading ? (
+                      <div className="flex items-center justify-center py-8">
+                        <Loader2 className="h-6 w-6 animate-spin" />
+                        <span className="ml-2">
+                          Loading your active games...
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {userActiveGames.map(({ gameId, gameState }, index) => {
+                          const isPlayer1 =
+                            gameState.player1 === currentAccount?.address;
+                          const isPlayer2 =
+                            gameState.player2 === currentAccount?.address;
+
+                          return (
+                            <motion.div
+                              key={gameId}
+                              initial={{ opacity: 0, y: 20 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{
+                                duration: 0.3,
+                                delay: index * 0.1,
+                                ease: "easeOut",
+                              }}
+                              whileHover={{
+                                scale: 1.02,
+                                transition: { duration: 0.2 },
+                              }}
+                              className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                            >
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <Badge
+                                    variant="default"
+                                    className="bg-green-600"
+                                  >
+                                    Your Active Game{" "}
+                                    {isPlayer1 ? "(Creator)" : "(Player 2)"}
+                                  </Badge>
+                                </div>
+                                <div className="text-sm text-muted-foreground">
+                                  <div>
+                                    Creator: {gameState.player1.slice(0, 6)}...
+                                    {gameState.player1.slice(-4)}
+                                    {isPlayer1 && " (You)"}
+                                  </div>
+                                  {gameState.player2 && (
+                                    <div>
+                                      Player 2: {gameState.player2.slice(0, 6)}
+                                      ...
+                                      {gameState.player2.slice(-4)}
+                                      {isPlayer2 && " (You)"}
+                                    </div>
+                                  )}
+                                  <div className="font-mono text-xs mt-1 flex items-center gap-2">
+                                    ID: {gameId.slice(0, 8)}...
+                                    {gameId.slice(-6)}
+                                    <CopyButton text={gameId} variant="icon" />
+                                  </div>
+                                </div>
+                              </div>
+                              <Button
+                                onClick={() => handleJoinGame(gameId)}
+                                disabled={joinGameMutation.isPending}
+                                size="sm"
+                                variant="default"
+                              >
+                                {joinGameMutation.isPending ? (
+                                  <>
+                                    <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                                    Rejoining...
+                                  </>
+                                ) : (
+                                  <>
+                                    <Play className="mr-2 h-3 w-3" />
+                                    Rejoin Game
+                                  </>
+                                )}
+                              </Button>
+                            </motion.div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Show empty state when no active or user active games */}
+              {!canRejoinGame &&
+                (!userActiveGames || userActiveGames.length === 0) && (
+                  <div className="text-center py-8 flex flex-col gap-2 justify-center items-center text-muted-foreground">
+                    <Clock className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p>No active games</p>
+                    <p className="text-sm">
+                      Create a new game or join an available game to get
+                      started!
+                    </p>
+                  </div>
+                )}
+            </motion.div>
           </TabsContent>
         </Tabs>
       </motion.div>
