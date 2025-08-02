@@ -198,7 +198,7 @@ export function GameLobby({
       }
 
       const stake = targetAvailableGame.gameState.stakeAmount;
-      
+
       if (!stake || stake <= 0) {
         toast.error("Invalid stake amount for this game");
         return;
@@ -208,7 +208,9 @@ export function GameLobby({
         gameId: targetGameId,
         stakeAmount: stake,
       });
-      toast.success(`Joined game successfully with ${(stake / 1_000_000_000).toFixed(3)} SUI stake!`);
+      toast.success(
+        `Joined game successfully with ${(stake / 1_000_000_000).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 3 })} SUI stake!`,
+      );
       onGameJoined(targetGameId);
       setGameIdToJoin(""); // Clear the input after successful join
     } catch (error) {
@@ -588,7 +590,11 @@ export function GameLobby({
                                 )}
                                 <div className="mt-1">
                                   <div className="text-sm font-medium text-foreground">
-                                    Stake: {(gameState.stakeAmount / 1_000_000_000).toFixed(3)} SUI
+                                    Stake:{" "}
+                                    {(
+                                      gameState.stakeAmount / 1_000_000_000
+                                    ).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 3 })}{" "}
+                                    SUI
                                   </div>
                                   <div className="font-mono text-xs flex items-center gap-2">
                                     ID: {gameId.slice(0, 8)}...

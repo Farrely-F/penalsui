@@ -5,9 +5,11 @@ import { useState } from "react";
 import { cn } from "@/lib/utils";
 
 export default function CopyButton({
+  className,
   text,
   variant = "button",
 }: {
+  className?: string;
   text: string;
   variant?: "icon" | "button";
 }) {
@@ -29,9 +31,13 @@ export default function CopyButton({
       size="sm"
       variant={"outline"}
       onClick={handleCopy}
-      className={cn("shrink-0", {
-        "px-0! py-0! bg-transparent! border-0!": variant === "icon",
-      })}
+      className={cn(
+        "shrink-0",
+        {
+          "px-0! py-0! bg-transparent! border-0!": variant === "icon",
+        },
+        className,
+      )}
     >
       <Copy className="h-3! w-3!" />
     </Button>
