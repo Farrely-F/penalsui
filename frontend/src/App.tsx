@@ -1,5 +1,4 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import { ConnectButton } from "@mysten/dapp-kit";
 import { Homepage } from "./components/Homepage";
 import { AppGame } from "./components/AppGame";
 import { Toaster } from "./components/ui/sonner";

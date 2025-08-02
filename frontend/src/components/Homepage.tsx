@@ -9,7 +9,7 @@ import {
   CardTitle,
 } from "./ui/card";
 import { motion } from "motion/react";
-import { Play, Trophy, Users, Zap, ArrowRight, Star } from "lucide-react";
+import { Trophy, Users, Zap } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 export function Homepage() {
