@@ -32,6 +32,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "motion/react";
+import CopyButton from "./ui/copy-button";
 
 interface GameInterfaceProps {
   gameId: string;
@@ -603,11 +604,12 @@ export function GameInterface({
       <Card>
         <CardHeader>
           <PenalSUIHeader />
-          <CardDescription className="text-center">
+          <CardDescription className="text-center flex items-center gap-2 justify-center">
             Game ID:{" "}
             <span className="font-mono text-xs">
               {gameId.slice(0, 8)}...{gameId.slice(-6)}
             </span>
+            <CopyButton text={gameId} variant="icon" />
           </CardDescription>
         </CardHeader>
       </Card>
