@@ -282,7 +282,6 @@ export function GameInterface({
               <CardTitle className="flex items-center justify-center gap-2">
                 <motion.div
                   animate={{
-                    rotate: [0, 360],
                     scale: [1, 1.2, 1],
                   }}
                   transition={{
@@ -401,6 +400,34 @@ export function GameInterface({
                 >
                   {gameState.player1Score} - {gameState.player2Score}
                 </motion.div>
+
+                {/* Player addresses for score reference */}
+                <div className="grid grid-cols-2 gap-4 text-xs text-muted-foreground">
+                  <div className="text-center">
+                    <div className="font-medium mb-1">Player 1</div>
+                    <div className="font-mono">
+                      {gameState.player1.slice(0, 6)}...
+                      {gameState.player1.slice(-4)}
+                      {gameState.player1 === currentAccount?.address &&
+                        " (You)"}
+                    </div>
+                  </div>
+                  <div className="text-center">
+                    <div className="font-medium mb-1">Player 2</div>
+                    <div className="font-mono">
+                      {gameState.player2 ? (
+                        <>
+                          {gameState.player2.slice(0, 6)}...
+                          {gameState.player2.slice(-4)}
+                          {gameState.player2 === currentAccount?.address &&
+                            " (You)"}
+                        </>
+                      ) : (
+                        "Waiting..."
+                      )}
+                    </div>
+                  </div>
+                </div>
 
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
