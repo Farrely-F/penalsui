@@ -3,6 +3,8 @@ module penalsui::game_tests;
 
 use penalsui::game::{Self, Game, GameRegistry};
 use sui::test_scenario::{Self as ts, Scenario};
+use sui::coin::{Self, Coin};
+use sui::sui::SUI;
 
 // Test addresses
 const PLAYER1: address = @0xa1;
@@ -48,13 +50,14 @@ fun test_create_game() {
         game::init_for_testing(ctx);
     };
 
-    // Player1 creates a game
+    // Player1 creates a game with stake
     ts::next_tx(&mut scenario, PLAYER1);
     {
         let mut registry = ts::take_shared<GameRegistry>(&scenario);
         let ctx = ts::ctx(&mut scenario);
+        let stake = coin::mint_for_testing<SUI>(1000000, ctx); // 0.001 SUI
 
-        game::create_game(&mut registry, ctx);
+        game::create_game(&mut registry, stake, ctx);
 
         ts::return_shared(registry);
     };
@@ -74,6 +77,8 @@ fun test_create_game() {
             p1_score,
             p2_score,
             winner,
+            stake_amount,
+            prize_pool,
         ) = game::get_game_state(&game);
 
         assert!(player1 == PLAYER1, 1);
@@ -84,6 +89,8 @@ fun test_create_game() {
         assert!(p1_score == 0, 6);
         assert!(p2_score == 0, 7);
         assert!(option::is_none(&winner), 8);
+        assert!(stake_amount == 1000000, 9); // 0.001 SUI
+        assert!(prize_pool == 1000000, 10); // 0.001 SUI in prize pool
 
         ts::return_shared(game);
     };
@@ -105,19 +112,21 @@ fun test_join_game() {
     {
         let mut registry = ts::take_shared<GameRegistry>(&scenario);
         let ctx = ts::ctx(&mut scenario);
-        game::create_game(&mut registry, ctx);
+        let stake = coin::mint_for_testing<SUI>(1000000000, ctx); // 1 SUI
+        game::create_game(&mut registry, stake, ctx);
         ts::return_shared(registry);
     };
 
-    // Player2 joins the game
+    // Player 2 joins the game
     ts::next_tx(&mut scenario, PLAYER2);
     {
         let mut game = ts::take_shared<Game>(&scenario);
         let ctx = ts::ctx(&mut scenario);
+        let stake = coin::mint_for_testing<SUI>(1000000000, ctx); // 1 SUI
 
-        game::join_game(&mut game, ctx);
+        game::join_game(&mut game, stake, ctx);
 
-        let (_, player2, _, _, _, _, _, _) = game::get_game_state(&game);
+        let (_, player2, _, _, _, _, _, _, _, _) = game::get_game_state(&game);
         assert!(option::is_some(&player2), 1);
         assert!(*option::borrow(&player2) == PLAYER2, 2);
 
@@ -141,7 +150,8 @@ fun test_start_game() {
     {
         let mut registry = ts::take_shared<GameRegistry>(&scenario);
         let ctx = ts::ctx(&mut scenario);
-        game::create_game(&mut registry, ctx);
+        let stake = coin::mint_for_testing<SUI>(1000000000, ctx); // 1 SUI
+        game::create_game(&mut registry, stake, ctx);
         ts::return_shared(registry);
     };
 
@@ -149,7 +159,8 @@ fun test_start_game() {
     {
         let mut game = ts::take_shared<Game>(&scenario);
         let ctx = ts::ctx(&mut scenario);
-        game::join_game(&mut game, ctx);
+        let stake = coin::mint_for_testing<SUI>(1000000000, ctx); // 1 SUI
+        game::join_game(&mut game, stake, ctx);
         ts::return_shared(game);
     };
 
@@ -161,7 +172,7 @@ fun test_start_game() {
 
         game::start_game(&mut game, ctx);
 
-        let (_, _, started, _, _, _, _, _) = game::get_game_state(&game);
+        let (_, _, started, _, _, _, _, _, _, _) = game::get_game_state(&game);
         assert!(started, 1);
 
         ts::return_shared(game);
@@ -222,7 +233,7 @@ fun test_shoot_and_keep_round_1() {
         game::keep(&mut game, center, ctx);
 
         // Round should be complete and scores updated
-        let (_, _, _, _, current_round, p1_score, p2_score, _) = game::get_game_state(&game);
+        let (_, _, _, _, current_round, p1_score, p2_score, _, _, _) = game::get_game_state(&game);
 
         assert!(current_round == 2, 1); // Should advance to round 2
         assert!(p1_score == 1, 2); // Player1 scored
@@ -261,7 +272,7 @@ fun test_keeper_saves_shot() {
 
         game::keep(&mut game, left, ctx); // Same direction = save
 
-        let (_, _, _, _, _, p1_score, p2_score, _) = game::get_game_state(&game);
+        let (_, _, _, _, _, p1_score, p2_score, _, _, _) = game::get_game_state(&game);
         assert!(p1_score == 0, 1); // No goal scored
         assert!(p2_score == 0, 2);
 
@@ -325,7 +336,7 @@ fun test_complete_game_player1_wins() {
     {
         let game = ts::take_shared<Game>(&scenario);
 
-        let (_, _, _, finished, _, p1_score, p2_score, winner) = game::get_game_state(&game);
+        let (_, _, _, finished, _, p1_score, p2_score, winner, _, _) = game::get_game_state(&game);
 
         assert!(finished, 1);
         assert!(p1_score == 3, 2); // Player1 scored 3 goals
@@ -361,7 +372,7 @@ fun test_draw_game() {
     {
         let game = ts::take_shared<Game>(&scenario);
 
-        let (_, _, _, finished, _, p1_score, p2_score, winner) = game::get_game_state(&game);
+        let (_, _, _, finished, _, p1_score, p2_score, winner, _, _) = game::get_game_state(&game);
 
         assert!(finished, 1);
         assert!(p1_score == 2, 2);
@@ -389,7 +400,8 @@ fun test_cannot_join_full_game() {
     {
         let mut registry = ts::take_shared<GameRegistry>(&scenario);
         let ctx = ts::ctx(&mut scenario);
-        game::create_game(&mut registry, ctx);
+        let stake = coin::mint_for_testing<SUI>(1000000000, ctx); // 1 SUI
+        game::create_game(&mut registry, stake, ctx);
         ts::return_shared(registry);
     };
 
@@ -397,7 +409,8 @@ fun test_cannot_join_full_game() {
     {
         let mut game = ts::take_shared<Game>(&scenario);
         let ctx = ts::ctx(&mut scenario);
-        game::join_game(&mut game, ctx);
+        let stake = coin::mint_for_testing<SUI>(1000000000, ctx); // 1 SUI
+        game::join_game(&mut game, stake, ctx);
         ts::return_shared(game);
     };
 
@@ -406,7 +419,8 @@ fun test_cannot_join_full_game() {
     {
         let mut game = ts::take_shared<Game>(&scenario);
         let ctx = ts::ctx(&mut scenario);
-        game::join_game(&mut game, ctx); // Should abort with EGameFull
+        let stake = coin::mint_for_testing<SUI>(1000000000, ctx); // 1 SUI
+        game::join_game(&mut game, stake, ctx); // Should abort with EGameFull
         ts::return_shared(game);
     };
 
@@ -427,7 +441,8 @@ fun test_creator_cannot_join_own_game() {
     {
         let mut registry = ts::take_shared<GameRegistry>(&scenario);
         let ctx = ts::ctx(&mut scenario);
-        game::create_game(&mut registry, ctx);
+        let stake = coin::mint_for_testing<SUI>(1000000000, ctx); // 1 SUI
+        game::create_game(&mut registry, stake, ctx);
         ts::return_shared(registry);
     };
 
@@ -436,7 +451,8 @@ fun test_creator_cannot_join_own_game() {
     {
         let mut game = ts::take_shared<Game>(&scenario);
         let ctx = ts::ctx(&mut scenario);
-        game::join_game(&mut game, ctx); // Should abort with EInvalidPlayer
+        let stake = coin::mint_for_testing<SUI>(1000000000, ctx); // 1 SUI
+        game::join_game(&mut game, stake, ctx); // Should abort with EInvalidPlayer
         ts::return_shared(game);
     };
 
@@ -458,7 +474,8 @@ fun test_cannot_shoot_before_game_starts() {
     {
         let mut registry = ts::take_shared<GameRegistry>(&scenario);
         let ctx = ts::ctx(&mut scenario);
-        game::create_game(&mut registry, ctx);
+        let stake = coin::mint_for_testing<SUI>(1000000000, ctx); // 1 SUI
+        game::create_game(&mut registry, stake, ctx);
         ts::return_shared(registry);
     };
 
@@ -466,7 +483,8 @@ fun test_cannot_shoot_before_game_starts() {
     {
         let mut game = ts::take_shared<Game>(&scenario);
         let ctx = ts::ctx(&mut scenario);
-        game::join_game(&mut game, ctx);
+        let stake = coin::mint_for_testing<SUI>(1000000000, ctx); // 1 SUI
+        game::join_game(&mut game, stake, ctx);
         ts::return_shared(game);
     };
 
@@ -556,7 +574,8 @@ fun setup_started_game(): Scenario {
     {
         let mut registry = ts::take_shared<GameRegistry>(&scenario);
         let ctx = ts::ctx(&mut scenario);
-        game::create_game(&mut registry, ctx);
+        let stake = coin::mint_for_testing<SUI>(1000000000, ctx); // 1 SUI
+        game::create_game(&mut registry, stake, ctx);
         ts::return_shared(registry);
     };
 
@@ -564,7 +583,8 @@ fun setup_started_game(): Scenario {
     {
         let mut game = ts::take_shared<Game>(&scenario);
         let ctx = ts::ctx(&mut scenario);
-        game::join_game(&mut game, ctx);
+        let stake = coin::mint_for_testing<SUI>(1000000000, ctx); // 1 SUI
+        game::join_game(&mut game, stake, ctx);
         ts::return_shared(game);
     };
 
