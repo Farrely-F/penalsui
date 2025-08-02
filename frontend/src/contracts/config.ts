@@ -1,10 +1,10 @@
 // Contract configuration for PenalSUI game
 export const CONTRACT_CONFIG = {
   // Package ID from deployment
-  PACKAGE_ID: "0xa7c6cdbbccc6484002a770e62b2c3c9f135ecde69451fef2933a4a6658878cf3",
+  PACKAGE_ID: "0x3d5e2d0c1d471702dbcf36f503bf72a70a97247552e4b4cedf8a84f0fe21948b",
   
   // Game Registry shared object ID
-  GAME_REGISTRY_ID: "0xa0d748880beda2daec9232b529b856fc4289459b1c2fecf6477d8cfb2bbd41b0",
+  GAME_REGISTRY_ID: "0x44a5f492ca938c4f5a3a8d4a07e79db4a16a6f721b136eefadddf49a2fd54cc9",
   
   // Module name
   MODULE_NAME: "game",
@@ -56,6 +56,8 @@ export interface GameState {
   player1Score: number;
   player2Score: number;
   winner: string | null;
+  stakeAmount: number;
+  prizePool: number;
 }
 
 export interface RoundInfo {

@@ -49,6 +49,7 @@ export function GameLobby({
   onLeaveGame,
 }: GameLobbyProps) {
   const [gameIdToJoin, setGameIdToJoin] = useState("");
+  const [stakeAmount, setStakeAmount] = useState("1"); // Default 1 SUI
   const currentAccount = useCurrentAccount();
   const createGameMutation = useCreateGame();
   const joinGameMutation = useJoinGame();
@@ -108,13 +109,19 @@ export function GameLobby({
       return;
     }
 
+    const stake = parseFloat(stakeAmount);
+    if (isNaN(stake) || stake <= 0) {
+      toast.error("Please enter a valid stake amount");
+      return;
+    }
+
     try {
-      const result = await createGameMutation.mutateAsync();
+      const result = await createGameMutation.mutateAsync(stake);
       // Extract game ID from the result
       const gameId = (result as any).gameId;
 
       if (gameId) {
-        toast.success("Game created successfully!");
+        toast.success(`Game created successfully with ${stake} SUI stake!`);
         onGameCreated(gameId);
       } else {
         throw new Error("Game ID not found in transaction result");
@@ -181,8 +188,27 @@ export function GameLobby({
       }
 
       // Regular join case - call the contract
-      await joinGameMutation.mutateAsync(targetGameId);
-      toast.success("Joined game successfully!");
+      // Get the stake amount from the available game
+      const targetAvailableGame = availableGames?.find(
+        (game) => game.gameId === targetGameId,
+      );
+      if (!targetAvailableGame) {
+        toast.error("Game not found in available games list");
+        return;
+      }
+
+      const stake = targetAvailableGame.gameState.stakeAmount;
+      
+      if (!stake || stake <= 0) {
+        toast.error("Invalid stake amount for this game");
+        return;
+      }
+
+      await joinGameMutation.mutateAsync({
+        gameId: targetGameId,
+        stakeAmount: stake,
+      });
+      toast.success(`Joined game successfully with ${(stake / 1_000_000_000).toFixed(3)} SUI stake!`);
       onGameJoined(targetGameId);
       setGameIdToJoin(""); // Clear the input after successful join
     } catch (error) {
@@ -359,6 +385,20 @@ export function GameLobby({
                         opponent
                       </CardDescription>
                     </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="stakeAmount">Stake Amount (SUI)</Label>
+                        <Input
+                          id="stakeAmount"
+                          type="number"
+                          placeholder="Enter stake amount..."
+                          value={stakeAmount}
+                          onChange={(e) => setStakeAmount(e.target.value)}
+                          min="0.1"
+                          step="0.1"
+                        />
+                      </div>
+                    </CardContent>
                     <CardFooter className="mt-auto">
                       <motion.div
                         className="w-full"
@@ -422,7 +462,7 @@ export function GameLobby({
                         />
                       </div>
                     </CardContent>
-                    <CardFooter>
+                    <CardFooter className="mt-auto">
                       <Button
                         onClick={() => handleJoinGame()}
                         disabled={
@@ -546,9 +586,15 @@ export function GameLobby({
                                     {isPlayer2 && " (You)"}
                                   </div>
                                 )}
-                                <div className="font-mono text-xs mt-1 flex items-center gap-2">
-                                  ID: {gameId.slice(0, 8)}...{gameId.slice(-6)}
-                                  <CopyButton text={gameId} variant="icon" />
+                                <div className="mt-1">
+                                  <div className="text-sm font-medium text-foreground">
+                                    Stake: {(gameState.stakeAmount / 1_000_000_000).toFixed(3)} SUI
+                                  </div>
+                                  <div className="font-mono text-xs flex items-center gap-2">
+                                    ID: {gameId.slice(0, 8)}...
+                                    {gameId.slice(-6)}
+                                    <CopyButton text={gameId} variant="icon" />
+                                  </div>
                                 </div>
                               </div>
                             </div>

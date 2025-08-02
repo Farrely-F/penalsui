@@ -105,6 +105,19 @@ const parseBoolean = (value: any): boolean => {
   return false;
 };
 
+// Parse u64 from byte array (little-endian)
+const parseU64FromBytes = (bytes: number[]): number => {
+  if (!Array.isArray(bytes) || bytes.length !== 8) {
+    return 0;
+  }
+  
+  let result = 0;
+  for (let i = 0; i < 8; i++) {
+    result += bytes[i] * Math.pow(256, i);
+  }
+  return result;
+};
+
 // Hook for creating a new game
 export function useCreateGame() {
   const { mutateAsync: signAndExecuteTransaction } =
@@ -113,12 +126,16 @@ export function useCreateGame() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async () => {
+    mutationFn: async (stakeAmount: number) => {
       const tx = new Transaction();
+
+      // Convert SUI to MIST (1 SUI = 1,000,000,000 MIST)
+      const stakeInMist = Math.floor(stakeAmount * 1_000_000_000);
+      const [coin] = tx.splitCoins(tx.gas, [stakeInMist]);
 
       tx.moveCall({
         target: `${CONTRACT_CONFIG.PACKAGE_ID}::${CONTRACT_CONFIG.MODULE_NAME}::${FUNCTION_NAMES.CREATE_GAME}`,
-        arguments: [tx.object(CONTRACT_CONFIG.GAME_REGISTRY_ID)],
+        arguments: [tx.object(CONTRACT_CONFIG.GAME_REGISTRY_ID), coin],
       });
 
       const result = await signAndExecuteTransaction({
@@ -325,6 +342,8 @@ export function useUserActiveGames() {
               const started = parseBoolean(values[2]);
               const finished = parseBoolean(values[3]);
 
+
+
               const gameState: GameState = {
                 player1,
                 player2,
@@ -334,6 +353,8 @@ export function useUserActiveGames() {
                 player1Score: parseInt(String(values[5]?.[0] || 0)),
                 player2Score: parseInt(String(values[6]?.[0] || 0)),
                 winner: values[7]?.[0] ? parseAddress(values[7]) : null,
+                stakeAmount: parseU64FromBytes(values[8]?.[0]), // Already in MIST, no conversion needed
+                prizePool: parseU64FromBytes(values[9]?.[0]), // Already in MIST, no conversion needed
               };
 
               // Include games where user is either player1 or player2 and game is not finished
@@ -341,17 +362,7 @@ export function useUserActiveGames() {
               const isUserPlayer2 = gameState.player2 === currentAccount.address;
               const isUserParticipant = isUserPlayer1 || isUserPlayer2;
               
-              // Debug: Uncomment to see user active games filtering
-              // console.log(`👤 User active game ${gameId} check:`, {
-              //   player1: gameState.player1,
-              //   player2: gameState.player2,
-              //   currentUser: currentAccount.address,
-              //   isUserPlayer1,
-              //   isUserPlayer2,
-              //   isUserParticipant,
-              //   finished: gameState.finished,
-              //   willInclude: isUserParticipant && !gameState.finished
-              // });
+
               
               if (isUserParticipant && !gameState.finished) {
                 userActiveGames.push({ gameId, gameState });
@@ -380,12 +391,17 @@ export function useJoinGame() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (gameId: string) => {
+    mutationFn: async ({ gameId, stakeAmount }: { gameId: string; stakeAmount: number }) => {
       const tx = new Transaction();
+
+      // stakeAmount is already in MIST units, no conversion needed
+      const stakeInMist = Math.floor(stakeAmount);
+
+      const [coin] = tx.splitCoins(tx.gas, [stakeInMist]);
 
       tx.moveCall({
         target: `${CONTRACT_CONFIG.PACKAGE_ID}::${CONTRACT_CONFIG.MODULE_NAME}::${FUNCTION_NAMES.JOIN_GAME}`,
-        arguments: [tx.object(gameId)],
+        arguments: [tx.object(gameId), coin],
       });
 
       const result = await signAndExecuteTransaction({
@@ -523,6 +539,8 @@ export function useGameState(gameId: string | null) {
             player1Score: fields.player1_score,
             player2Score: fields.player2_score,
             winner: fields.winner ? parseAddress(fields.winner) : null,
+            stakeAmount: (fields.stake_amount || 0) / 1_000_000_000, // Convert from MIST to SUI
+            prizePool: (fields.prize_pool?.value || 0) / 1_000_000_000, // Convert from MIST to SUI
           };
         }
 
@@ -659,10 +677,7 @@ export function useAvailableGames() {
     queryFn: async (): Promise<
       Array<{ gameId: string; gameState: GameState }>
     > => {
-      console.log("🔍 Starting useAvailableGames query");
-
       if (!currentAccount) {
-        console.log("❌ No wallet connected");
         return [];
       }
 
@@ -787,6 +802,8 @@ export function useAvailableGames() {
                 player1Score: parseInt(String(values[5]?.[0] || 0)),
                 player2Score: parseInt(String(values[6]?.[0] || 0)),
                 winner: values[7]?.[0] ? parseAddress(values[7]) : null,
+                stakeAmount: parseU64FromBytes(values[8]?.[0]), // Keep in MIST units
+                prizePool: parseU64FromBytes(values[9]?.[0]), // Keep in MIST for now
               };
 
               // console.log(`Game state for ${gameId}:`, gameState);
@@ -799,16 +816,7 @@ export function useAvailableGames() {
               const isNotUserGame = gameState.player1 !== currentAccount.address;
               const shouldInclude = !gameState.finished && hasNoOpponent && isNotUserGame;
               
-              // Debug: Uncomment to see filtering logic
-              // console.log(`🎮 Game ${gameId} filter check:`, {
-              //   player1: gameState.player1,
-              //   player2: gameState.player2,
-              //   currentUser: currentAccount.address,
-              //   finished: gameState.finished,
-              //   hasNoOpponent,
-              //   isNotUserGame,
-              //   shouldInclude
-              // });
+
 
               // console.log(`Filter evaluation for ${gameId}:`, {
                //   finished: gameState.finished,
@@ -829,7 +837,7 @@ export function useAvailableGames() {
         // console.log("Available games:", availableGames);
         return availableGames;
       } catch (error) {
-        console.error("❌ Error fetching games:", error);
+        console.error("Error fetching games:", error);
         return [];
       }
     },

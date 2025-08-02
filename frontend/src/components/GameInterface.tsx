@@ -336,7 +336,7 @@ export function GameInterface({
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.7 }}
-                className="flex gap-2 mt-4"
+                className="flex justify-center gap-2 mt-4"
               >
                 <motion.div
                   whileHover={{ scale: 1.05 }}

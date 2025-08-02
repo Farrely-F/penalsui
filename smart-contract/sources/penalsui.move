@@ -1,6 +1,10 @@
 module penalsui::game;
 
 use sui::event;
+use sui::coin::{Self, Coin};
+use sui::sui::SUI;
+use sui::balance::{Self, Balance};
+use sui::transfer;
 
 // use std::vector;
 // use std::option::{Self, Option};
@@ -15,6 +19,7 @@ const EInvalidPlayer: u64 = 6;
 const EGameFull: u64 = 7;
 // const ERoundNotComplete: u64 = 8;
 const EInvalidDirection: u64 = 9;
+const EInvalidStakeAmount: u64 = 10;
 
 // Constants
 const MAX_ROUNDS: u8 = 5;
@@ -46,6 +51,8 @@ public struct Game has key, store {
     rounds: vector<Round>,
     winner: Option<address>,
     created_at: u64,
+    stake_amount: u64,
+    prize_pool: Balance<SUI>,
 }
 
 // Game registry to track all games
@@ -149,11 +156,12 @@ fun update_round_assignments(rounds: &mut vector<Round>, player2: address) {
     };
 }
 
-// Create a new game
-entry fun create_game(registry: &mut GameRegistry, ctx: &mut TxContext) {
+// Create a new game with stake
+entry fun create_game(registry: &mut GameRegistry, stake: Coin<SUI>, ctx: &mut TxContext) {
     let game_id = object::new(ctx);
     let game_id_copy = object::uid_to_inner(&game_id);
     let sender = tx_context::sender(ctx);
+    let stake_amount = coin::value(&stake);
 
     let game = Game {
         id: game_id,
@@ -167,6 +175,8 @@ entry fun create_game(registry: &mut GameRegistry, ctx: &mut TxContext) {
         rounds: create_initial_rounds(sender),
         winner: option::none(),
         created_at: tx_context::epoch(ctx),
+        stake_amount,
+        prize_pool: coin::into_balance(stake),
     };
 
     vector::push_back(&mut registry.games, game_id_copy);
@@ -180,15 +190,20 @@ entry fun create_game(registry: &mut GameRegistry, ctx: &mut TxContext) {
     transfer::share_object(game);
 }
 
-// Join an existing game
-entry fun join_game(game: &mut Game, ctx: &TxContext) {
+// Join an existing game with matching stake
+entry fun join_game(game: &mut Game, stake: Coin<SUI>, ctx: &TxContext) {
     let sender = tx_context::sender(ctx);
+    let stake_value = coin::value(&stake);
 
     assert!(!game.started, EGameAlreadyStarted);
     assert!(option::is_none(&game.player2), EGameFull);
     assert!(game.player1 != sender, EInvalidPlayer);
+    assert!(stake_value == game.stake_amount, EInvalidStakeAmount);
 
     game.player2 = option::some(sender);
+
+    // Add the stake to the prize pool
+    balance::join(&mut game.prize_pool, coin::into_balance(stake));
 
     // Update round shooter/keeper assignments
     update_round_assignments(&mut game.rounds, sender);
@@ -217,7 +232,7 @@ entry fun start_game(game: &mut Game, ctx: &TxContext) {
 }
 
 // Submit a shoot direction
-entry fun shoot(game: &mut Game, direction: u8, ctx: &TxContext) {
+entry fun shoot(game: &mut Game, direction: u8, ctx: &mut TxContext) {
     let sender = tx_context::sender(ctx);
 
     assert!(game.started, EGameNotStarted);
@@ -240,12 +255,12 @@ entry fun shoot(game: &mut Game, direction: u8, ctx: &TxContext) {
 
     // Check if round is complete and resolve
     if (option::is_some(&current_round.keep_direction)) {
-        resolve_round(game);
+        resolve_round(game, ctx);
     };
 }
 
 // Submit a keep direction
-entry fun keep(game: &mut Game, direction: u8, ctx: &TxContext) {
+entry fun keep(game: &mut Game, direction: u8, ctx: &mut TxContext) {
     let sender = tx_context::sender(ctx);
 
     assert!(game.started, EGameNotStarted);
@@ -268,12 +283,12 @@ entry fun keep(game: &mut Game, direction: u8, ctx: &TxContext) {
 
     // Check if round is complete and resolve
     if (option::is_some(&current_round.shoot_direction)) {
-        resolve_round(game);
+        resolve_round(game, ctx);
     };
 }
 
 // Internal function to resolve a completed round
-fun resolve_round(game: &mut Game) {
+fun resolve_round(game: &mut Game, ctx: &mut TxContext) {
     let round_index = (game.current_round as u64) - 1;
     let current_round = vector::borrow_mut(&mut game.rounds, round_index);
 
@@ -306,23 +321,39 @@ fun resolve_round(game: &mut Game) {
 
     // Check if game is finished
     if (game.current_round == MAX_ROUNDS) {
-        finish_game(game);
+        finish_game(game, ctx);
     } else {
         game.current_round = game.current_round + 1;
     };
 }
 
 // Internal function to finish the game
-fun finish_game(game: &mut Game) {
+fun finish_game(game: &mut Game, ctx: &mut TxContext) {
     game.finished = true;
 
-    // Determine winner
+    // Determine winner and distribute prize
     if (game.player1_score > game.player2_score) {
         game.winner = option::some(game.player1);
+        // Winner takes all
+        let prize = coin::from_balance(balance::withdraw_all(&mut game.prize_pool), ctx);
+        transfer::public_transfer(prize, game.player1);
     } else if (game.player2_score > game.player1_score) {
-        game.winner = option::some(*option::borrow(&game.player2));
+        let player2_addr = *option::borrow(&game.player2);
+        game.winner = option::some(player2_addr);
+        // Winner takes all
+        let prize = coin::from_balance(balance::withdraw_all(&mut game.prize_pool), ctx);
+        transfer::public_transfer(prize, player2_addr);
+    } else {
+        // Draw - split the prize pool equally
+        let total_balance = balance::value(&game.prize_pool);
+        let half_amount = total_balance / 2;
+        
+        let player1_share = coin::from_balance(balance::split(&mut game.prize_pool, half_amount), ctx);
+        let player2_share = coin::from_balance(balance::withdraw_all(&mut game.prize_pool), ctx);
+        
+        transfer::public_transfer(player1_share, game.player1);
+        transfer::public_transfer(player2_share, *option::borrow(&game.player2));
     };
-    // If scores are equal, winner remains None (draw)
 
     event::emit(GameFinished {
         game_id: object::uid_to_inner(&game.id),
@@ -349,6 +380,8 @@ public fun get_game_state(
     u8, // player1_score
     u8, // player2_score
     Option<address>, // winner
+    u64, // stake_amount
+    u64, // prize_pool_value
 ) {
     (
         game.player1,
@@ -359,6 +392,8 @@ public fun get_game_state(
         game.player1_score,
         game.player2_score,
         game.winner,
+        game.stake_amount,
+        balance::value(&game.prize_pool),
     )
 }
 
@@ -438,4 +473,14 @@ public fun max_rounds(): u8 { MAX_ROUNDS }
 // Get available games (games that need a second player)
 public fun get_available_games(registry: &GameRegistry): vector<ID> {
     registry.games
+}
+
+// Get stake amount for a game
+public fun get_stake_amount(game: &Game): u64 {
+    game.stake_amount
+}
+
+// Get current prize pool value
+public fun get_prize_pool_value(game: &Game): u64 {
+    balance::value(&game.prize_pool)
 }
